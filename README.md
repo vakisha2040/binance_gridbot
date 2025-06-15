@@ -1,12 +1,12 @@
 # Binnance Grid Bot
 
-A Node.js-based grid trading bot for Bybit with Telegram control panel, automatic state management, and logging.
+A Node.js-based grid trading bot for Binnance with Telegram control panel, automatic state management, and logging.
 
 ## Features
 
 - **Grid Trading Strategy**: Fully automated grid trading for Bybit linear contracts.
 - **Hedging Support**: Opens hedge trades when stop-loss is triggered.
-- **Real-Time Price Feed**: Via Bybit WebSocket API.
+- **Real-Time Price Feed**:
 - **Telegram Bot Control**: Start/stop, view and update config, and manual trading from Telegram.
 - **Persistent Logging**: All actions logged to file and optionally to Telegram.
 - **Configurable**: All parameters via `config/config.json` or Telegram.
@@ -14,7 +14,7 @@ A Node.js-based grid trading bot for Bybit with Telegram control panel, automati
 ## Requirements
 
 - Node.js v16+ (recommended)
-- Bybit account with API key/secret (with trading permissions)
+- Binnance account with API key/secret (with trading permissions)
 - Telegram account (to use bot control)
 
 ## Setup
@@ -33,8 +33,8 @@ A Node.js-based grid trading bot for Bybit with Telegram control panel, automati
 
     ```env
     TELEGRAM_TOKEN=your_telegram_bot_token
-    BYBIT_API_KEY=your_bybit_api_key
-    BYBIT_API_SECRET=your_bybit_api_secret
+    BINNANCE_API_KEY=your_binnance_api_key
+    BINNANCE_API_SECRET=your_binnance_api_secret
     AUTO_START=false
     ```
 
@@ -75,7 +75,7 @@ A Node.js-based grid trading bot for Bybit with Telegram control panel, automati
 config/
   config.json       # Trading parameters
 clients/
-  bybitClient.js    # Bybit REST API client
+  binnanceClient.js    # Bybit REST API client
 core/
   bot.js            # Main bot logic (trading loop)
   helpers.js        # Price and precision helpers
@@ -95,7 +95,7 @@ index.js            # Entry point
 
 - **Never share your .env or config with secrets!**
 - Store your API keys securely; use environment variables.
-- Use a dedicated, withdrawal-disabled Bybit API key.
+- Use a dedicated, withdrawal-disabled Binnance API key.
 
 ## Disclaimer
 
