@@ -8,7 +8,7 @@
   "startPrice": null,
   "tradeEntrySpacing": 100,
   "gridSpacing": 280,
-  "gridLevels": 90,
+  "gridLevels": 100,
   "gridStopLossPercent": 0.9,
   "cooldownTime": 60,
   "telegramBotToken": "7039271335:AAHUPJ0J4Hvj3oK4EZ2AxxGaMeyZa3hKUdU",
