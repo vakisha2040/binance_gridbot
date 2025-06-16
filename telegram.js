@@ -1,7 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 const config = require('./config.json');
-const { startBot, stopBot, setSendMessage, manualCloseMainTrade } = require('../core/bot');
+const { startBot, stopBot, setSendMessage, manualCloseMainTrade } = require('./bot');
 const state = require('./state');
 const CONFIG_PATH = './config.json';
 
