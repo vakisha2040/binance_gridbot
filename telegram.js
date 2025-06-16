@@ -13,8 +13,7 @@ const {
 
 const token = process.env.TELEGRAM_TOKEN;
 const webhookPath = `/telegram-webhook`;
-const webhookUrl = `${https://binance-gridbot.onrender.com}${webhookPath}`;
-
+const webhookUrl = `https://binance-gridbot.onrender.com${webhookPath}`;
 // Create bot with no polling
 const bot = new TelegramBot(token);
 
