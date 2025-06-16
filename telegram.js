@@ -22,7 +22,7 @@ bot.setWebHook(webhookUrl);
 
 // Inject sendMessage into core logic
 function sendMessage(msg) {
-  bot.sendMessage(process.env.ADMIN_ID, msg);
+  bot.sendMessage(6822395868, msg);
 }
 setSendMessage(sendMessage);
 
