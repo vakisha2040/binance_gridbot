@@ -90,4 +90,6 @@ module.exports = {
   getHedgeTrade,
   setCooldown,
   isCooldown,
+  saveState,
+  loadState,
 };
