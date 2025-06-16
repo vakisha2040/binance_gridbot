@@ -86,7 +86,7 @@ bot.on('callback_query', async (query) => {
   }
 
   if (action === 'view_config') {
-    const cfg = fs.readFileSync('./config/config.json', 'utf8');
+    const cfg = fs.readFileSync('./config.json', 'utf8');
     await bot.sendMessage(chatId, `📄 Current Config:\n\n<pre>${cfg}</pre>`, { parse_mode: 'HTML' });
   }
 
