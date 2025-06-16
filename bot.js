@@ -66,7 +66,7 @@ async function startBot() {
 }
 
 // this is used for clearing state
-async function resetBotState() {
+async function resetBot() {
   state.clearMainTrade();
   state.clearHedgeTrade();
   state.stopBot();
@@ -382,5 +382,5 @@ module.exports = {
   closeHedgeTrade,
   manualCloseMainTrade,
   promoteHedgeToMain,
-  resetBotState,
+  resetBot,
 };
