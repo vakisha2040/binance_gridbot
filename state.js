@@ -24,12 +24,6 @@ function loadState() {
 }
 
 function saveState() {
-    const data = {
-    botRunning,
-    mainTrade,
-    hedgeTrade,
-    cooldownUntil
-  };
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 }
 
