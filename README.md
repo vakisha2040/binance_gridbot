@@ -1,4 +1,4 @@
-# Binnance Grid Bot
+# Binance Grid Bot
 
 A Node.js-based grid trading bot for Binnance with Telegram control panel, automatic state management, and logging.
 
@@ -14,7 +14,7 @@ A Node.js-based grid trading bot for Binnance with Telegram control panel, autom
 ## Requirements
 
 - Node.js v16+ (recommended)
-- Binnance account with API key/secret (with trading permissions)
+- Binance account with API key/secret (with trading permissions)
 - Telegram account (to use bot control)
 
 ## Setup
@@ -33,8 +33,8 @@ A Node.js-based grid trading bot for Binnance with Telegram control panel, autom
 
     ```env
     TELEGRAM_TOKEN=your_telegram_bot_token
-    BINNANCE_API_KEY=your_binnance_api_key
-    BINNANCE_API_SECRET=your_binnance_api_secret
+    BINANCE_API_KEY=your_binnance_api_key
+    BINANCE_API_SECRET=your_binnance_api_secret
     AUTO_START=false
     ```
 
