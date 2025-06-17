@@ -12,26 +12,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
-// handles redis ping connection
-/*
-const options = {
-  redis: "redis://red-d18nfa15pdvs73cnk6mg:6379",
-};
-const renderQueue = new Queue('render', options);
-app.get('/healthz', async (req, res) => {
-  try {
-    const redisStatus = await renderQueue.checkHealth();
-    if (redisStatus) {
-      return res.sendStatus(200).json({ message: 'Redis connection running' });
-    } else {
-      return res.status(500).json({ message: 'Redis connection failed' });
-    }
-  } catch (err) {
-    console.error('Health check failed:', err);
-    return res.status(500).json({ message: 'Redis health check failed', error: err.message });
-  }
-})
-*/
 
 // 🧠 Important: Handle Telegram webhook updates
 app.post(webhookPath, (req, res) => {
