@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 
 // handles redis ping connection
-
+/*
 const options = {
   redis: "redis://red-d18nfa15pdvs73cnk6mg:6379",
 };
@@ -31,11 +31,7 @@ app.get('/healthz', async (req, res) => {
     return res.status(500).json({ message: 'Redis health check failed', error: err.message });
   }
 })
-
-
-
-
-
+*/
 
 // 🧠 Important: Handle Telegram webhook updates
 app.post(webhookPath, (req, res) => {
