@@ -18,7 +18,7 @@ const state = require('./state');
 
 const { clearBoundary, loadBoundary, saveBoundary } = require('./persistence');
 
-let { trailingBoundary, boundaries } = loadBoundary(); // Restore on start
+//let { trailingBoundary, boundaries } = loadBoundary(); // Restore on start
 
 
 let sendMessage = () => {};
@@ -28,8 +28,8 @@ function setSendMessage(fn) {
 }
 
 
-//let trailingBoundary = null;
-//let boundaries = { top: null, bottom: null };
+let trailingBoundary = null;
+let boundaries = { top: null, bottom: null };
 let lastHedgeClosePrice = null;
 
 // This start support persisted
@@ -355,7 +355,7 @@ function setImmediateHedgeBoundary(price) {
   if (!mainTrade) return;
 
   const spacing = config.tradeEntrySpacing;
-  const maxDistance = config.maxHedgeTrailDistance;
+  const maxDistance = config.maxHedgeTrailDistance|| 300;
   const movementTrigger = config.trailTriggerDistance || 200;
   const entry = mainTrade.entry;
   const direction = mainTrade.side === 'Buy' ? 1 : -1;
