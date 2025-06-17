@@ -28,8 +28,8 @@ function setSendMessage(fn) {
 }
 
 
-let trailingBoundary = null;
-let boundaries = { top: null, bottom: null };
+//let trailingBoundary = null;
+//let boundaries = { top: null, bottom: null };
 let lastHedgeClosePrice = null;
 
 // This start support persisted
