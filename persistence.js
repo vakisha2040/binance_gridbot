@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const FILE_PATH = path.join(__dirname, './hedgeBoundary.json');
+const FILE_PATH = path.join(__dirname, 'hedgeBoundary.json');
 
 function loadBoundary() {
   try {
