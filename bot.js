@@ -12,7 +12,7 @@ const {
   stopPolling
 } = require('./priceFeed');
 
-const bybit = require('./binanceClient');
+const bybit = require('./bitgetClient');
 const config = require('./config.json');
 const state = require('./state');
 
