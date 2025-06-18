@@ -1,4 +1,7 @@
-require('dotenv').config(); const crypto = require('crypto'); const fetch = require('node-fetch'); const config = require('./config.json');
+require('dotenv').config(); 
+const crypto = require('crypto');
+const fetch = require('node-fetch'); 
+const config = require('./config.json');
 
 class BitgetClient { 
   constructor(cfg = config, logger = console) { 
@@ -7,9 +10,12 @@ class BitgetClient {
     this.apiKey = process.env.BITGET_API_KEY;
     this.apiSecret = process.env.BITGET_API_SECRET; 
     this.passphrase = process.env.BITGET_API_PASSPHRASE; 
-    this.baseURL = 'https://api.bitget.com'; }
+    this.baseURL = 'https://api.bitget.com';
+  }
 
-sign(timestamp, method, path, body = '') { const payload = ${timestamp}${method}${path}${body}; return crypto.createHmac('sha256', this.apiSecret).update(payload).digest('base64'); }
+sign(timestamp, method, path, body = '') { const payload = ${timestamp}${method}${path}${body}; 
+                                          return crypto.createHmac('sha256', this.apiSecret).update(payload).digest('base64'); 
+                                         }
 
 async request(method, path, params = {}, body = null) { const timestamp = Date.now().toString(); const query = method === 'GET' && Object.keys(params).length ? ?${new URLSearchParams(params)} : ''; const fullPath = ${path}${query}; const url = ${this.baseURL}${fullPath}; const bodyStr = body ? JSON.stringify(body) : ''; const signature = this.sign(timestamp, method, fullPath, bodyStr);
 
@@ -46,7 +52,8 @@ async closeMainTrade(side, qty) { const positionSide = side.toUpperCase() === 'B
 
 async openHedgeTrade(side, qty) { return this.openMainTrade(side, qty); }
 
-async closeHedgeTrade(side, qty) { return this.closeMainTrade(side, qty); } }
+async closeHedgeTrade(side, qty) { return this.closeMainTrade(side, qty); }
+}
 
 const bitgetClient = new BitgetClient(); module.exports = bitgetClient;
 
