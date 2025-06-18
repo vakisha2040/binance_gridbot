@@ -11,7 +11,7 @@ const state = require('./state');
 
 const app = express();
 const token = process.env.TELEGRAM_TOKEN;
-const WEBHOOK_URL = "http://binanc-env.eba-m7mahuez.ap-southeast-1.elasticbeanstalk.com/";
+const WEBHOOK_URL = "https://binance-gridbot.onrender.com";
 // e.g., https://yourdomain.com or https://abc123.ngrok.io
 const ADMIN_ID = "6822395868";
 const CONFIG_PATH = path.resolve(__dirname, './config.json');
