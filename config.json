@@ -1,1 +1,18 @@
-
+{
+  "symbol": "BTCUSDT_UMCBL",
+  "marginCoin": "USDT",
+  "tickSize": 0.01
+  "pricePrecision": 2,
+  "stepSize": 1,
+  "leverage": 70,
+  "orderSize": 0.002,
+  "startPrice": null,
+  "tradeEntrySpacing": 100,
+  "trailingBoundary": 240,
+  "maxHedgeTrailDistance": 300,
+  "trailTriggerDistance": 200,
+  "gridSpacing": 150,
+  "gridLevels": 120,
+  "gridStopLossPercent": 0.9,
+  "cooldownTime": 60
+}
