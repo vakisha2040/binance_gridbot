@@ -51,24 +51,25 @@ class BitgetClient {
     this.sendMessage = fn;
   }
 
-  async setLeverage(symbol, leverage, holdSide = 'long') {
-    try {
-      const res = await this.request('POST', '/api/mix/v1/account/set-leverage', {}, {
-        symbol,
-        marginCoin: this.config.marginCoin,
-        marginMode: this.config.marginMode || 'isolated',
-        leverage: String(leverage),
-      });
+async setLeverage(symbol, leverage, holdSide = 'long') {
+  try {
+    const res = await this.request('POST', '/api/mix/v1/account/set-leverage', {}, {
+      symbol,
+      marginCoin: this.config.marginCoin,
+      marginMode: 'crossed', // ✅ for cross margin
+      leverage: String(config.leverage),
+      productType: 'umcbl'   // ✅ required for USDT-M futures
+    });
 
-      this.logger.info(`Leverage set to ${leverage}x for ${symbol} (${holdSide})`);
-      this.sendMessage?.(`✅ Leverage set to ${leverage}x for ${symbol} (${holdSide})`);
-      return true;
-    } catch (e) {
-      this.logger.error('Failed to set leverage', e);
-      this.sendMessage?.(`❌ Failed to set leverage: ${e.message}`);
-      return false;
-    }
+    this.logger.info(`Leverage set to ${leverage}x (CROSS) for ${symbol} (${holdSide})`);
+    this.sendMessage?.(`✅ Leverage set to ${leverage}x (CROSS) for ${symbol} (${holdSide})`);
+    return true;
+  } catch (e) {
+    this.logger.error('Failed to set leverage', e);
+    this.sendMessage?.(`❌ Failed to set leverage: ${e.message}`);
+    return false;
   }
+}
 
   async placeOrder(side, qty, tradeSide = 'open', positionSide = 'long') {
     try {
