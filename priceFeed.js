@@ -10,23 +10,31 @@ async function pollPrice() {
   try {
     const endpoint = `https://api.bitget.com/api/mix/v1/market/ticker`;
     const params = {
-      symbol: config.symbol, // e.g., BTCUSDT_UMCBL
-      productType: 'umcbl'   // lowercase for USDT-Margined Futures
+      symbol: config.symbol,
+      productType: 'umcbl'
     };
 
     const res = await axios.get(endpoint, { params });
     const ticker = res.data?.data;
 
-    if (ticker && ticker.bidPx) {
-      latestPrice = parseFloat(ticker.bidPx);
-      listeners.forEach(fn => fn(latestPrice));
+    if (res.data.code !== '00000') {
+      throw new Error(res.data.msg || 'Unknown Bitget API error');
     }
+
+    const price = ticker.bestBid || ticker.last;
+    if (price) {
+      latestPrice = parseFloat(price);
+      listeners.forEach(fn => fn(latestPrice));
+    } else {
+      console.warn('[Bitget] No valid price found in response:', ticker);
+    }
+
   } catch (err) {
     console.error('[PriceFeed] Bitget polling error:', err.message);
   }
 }
 
-function startPolling(intervalMs = 2000) {
+function startPolling(intervalMs = 1000) {
   if (pollingInterval) clearInterval(pollingInterval);
   pollPrice(); // immediate
   pollingInterval = setInterval(pollPrice, intervalMs);
