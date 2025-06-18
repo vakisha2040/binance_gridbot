@@ -48,9 +48,28 @@ async request(method, path, params = {}, body = null) {
 
 setSendMessage(fn) { this.sendMessage = fn; }
 
-async setLeverage(symbol, leverage, holdSide = 'long') { try { const res = await this.request('POST', '/api/v2/mix/account/set-leverage', {}, { symbol, marginCoin: this.config.marginCoin, marginMode: this.config.marginMode || 'isolated', leverage: String(leverage), }); this.logger.info(Leverage set to ${leverage}x for ${symbol} (${holdSide})); this.sendMessage?.(✅ Leverage set to ${leverage}x for ${symbol} (${holdSide})); return true; } catch (e) { this.logger.error('Failed to set leverage', e); this.sendMessage?.(❌ Failed to set leverage: ${e.message}); return false; } }
+async setLeverage(symbol, leverage, holdSide = 'long') {
+  try {
+    const res = await this.request('POST', '/api/v2/mix/account/set-leverage', {}, {
+      symbol,
+      marginCoin: this.config.marginCoin,
+      marginMode: this.config.marginMode || 'isolated',
+      leverage: String(leverage),
+    });
 
-async placeOrder(side, qty, tradeSide = 'open', positionSide = 'long') { try { const res = await this.request('POST', '/api/v2/mix/order/place-order', {}, { symbol: this.config.symbol, marginCoin: this.config.marginCoin, marginMode: this.config.marginMode || 'isolated', productType: 'USDT-FUTURES', size: String(qty), side: side.toLowerCase(), tradeSide, orderType: 'market', reduceOnly: 'NO', force: 'gtc' }); this.logger.info(Order placed: ${side} ${qty} (${tradeSide} ${positionSide}), res); this.sendMessage?.(🟢 Order: ${side} ${qty} (${tradeSide} ${positionSide})); return res; } catch (e) { this.logger.error('Order failed', e); this.sendMessage?.(❌ Order failed: ${e.message}); throw e; } }
+    this.logger.info(`Leverage set to ${leverage}x for ${symbol} (${holdSide})`);
+    this.sendMessage?.(`✅ Leverage set to ${leverage}x for ${symbol} (${holdSide})`);
+    return true;
+  } catch (e) {
+    this.logger.error('Failed to set leverage', e);
+    this.sendMessage?.(`❌ Failed to set leverage: ${e.message}`);
+    return false;
+  }
+}
+async placeOrder(side, qty, tradeSide = 'open', positionSide = 'long') { 
+  try
+  { 
+    const res = await this.request('POST', '/api/v2/mix/order/place-order', {}, { symbol: this.config.symbol, marginCoin: this.config.marginCoin, marginMode: this.config.marginMode || 'isolated', productType: 'USDT-FUTURES', size: String(qty), side: side.toLowerCase(), tradeSide, orderType: 'market', reduceOnly: 'NO', force: 'gtc' }); this.logger.info(Order placed: ${side} ${qty} (${tradeSide} ${positionSide}), res); this.sendMessage?.(🟢 Order: ${side} ${qty} (${tradeSide} ${positionSide})); return res; } catch (e) { this.logger.error('Order failed', e); this.sendMessage?.(❌ Order failed: ${e.message}); throw e; } }
 
 async cancelAllOrders() { try { const res = await this.request('POST', '/api/v2/mix/order/cancel-all', {}, { symbol: this.config.symbol, marginCoin: this.config.marginCoin }); this.logger.info(✅ All open orders canceled for ${this.config.symbol}); this.sendMessage?.(🧹 All open orders canceled for *${this.config.symbol}*); return res; } catch (e) { this.logger.error('Failed to cancel open orders', e); this.sendMessage?.(❌ Failed to cancel open orders: ${e.message}); throw e; } }
 
