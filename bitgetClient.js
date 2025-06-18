@@ -51,7 +51,7 @@ class BitgetClient {
     this.sendMessage = fn;
   }
 
-  async setLeverage(symbol, leverage, holdSide = 'long') {
+  async setLeverage(symbol, leverage, positionSide = 'long') {
     try {
       const res = await this.request('POST', '/api/mix/v1/account/setLeverage', {}, {
         symbol,
@@ -60,9 +60,8 @@ class BitgetClient {
         leverage: String(leverage),
       });
 
-      const label = (this.config.marginMode || 'crossed').toLowerCase();
-      this.logger.info(`✅ Leverage set to ${leverage}x (${label}) for ${symbol} (${holdSide})`);
-      this.sendMessage?.(`✅ Leverage set to ${leverage}x (${label}) for ${symbol} (${holdSide})`);
+      this.logger.info(`✅ Leverage set to ${leverage}x (${this.config.marginMode}) for ${symbol} (${positionSide})`);
+      this.sendMessage?.(`✅ Leverage set to ${leverage}x (${this.config.marginMode}) for ${symbol} (${positionSide})`);
       return true;
     } catch (e) {
       this.logger.error('❌ Failed to set leverage', e);
@@ -71,18 +70,45 @@ class BitgetClient {
     }
   }
 
-  async placeOrder(_ignoredSide, qty, tradeSide = 'open', positionSide = 'long') {
+  async getPositionSize(positionSide = 'long') {
+    try {
+      const data = await this.request('GET', '/api/mix/v1/position/singlePosition', {
+        symbol: this.config.symbol,
+        marginCoin: this.config.marginCoin,
+      });
+
+      if (!data || !data.holdSide) return 0;
+
+      if (positionSide === 'long' && data.holdSide.toLowerCase() === 'long') {
+        return parseFloat(data.total);
+      }
+
+      if (positionSide === 'short' && data.holdSide.toLowerCase() === 'short') {
+        return parseFloat(data.total);
+      }
+
+      return 0;
+    } catch (e) {
+      this.logger.error('❌ Failed to fetch position size', e);
+      return 0;
+    }
+  }
+
+  async placeOrder(_, qty, tradeSide = 'open', positionSide = 'long') {
     try {
       let side;
       if (tradeSide === 'open') {
         side = positionSide === 'long' ? 'buy' : 'sell';
-      } else if (tradeSide === 'close') {
-        side = positionSide === 'long' ? 'sell' : 'buy';
       } else {
-        throw new Error(`Invalid tradeSide: ${tradeSide}`);
+        side = positionSide === 'long' ? 'sell' : 'buy';
+        const actualQty = await this.getPositionSize(positionSide);
+        if (actualQty <= 0) {
+          throw new Error(`No ${positionSide} position to close.`);
+        }
+        qty = Math.min(qty, actualQty);
       }
 
-      const res = await this.request('POST', '/api/mix/v1/order/placeOrder', {}, {
+      const body = {
         symbol: this.config.symbol,
         marginCoin: this.config.marginCoin,
         marginMode: this.config.marginMode || 'crossed',
@@ -91,7 +117,10 @@ class BitgetClient {
         tradeSide,
         orderType: 'market',
         force: 'gtc',
-      });
+        reduceOnly: tradeSide === 'close' ? 'true' : 'false',
+      };
+
+      const res = await this.request('POST', '/api/mix/v1/order/placeOrder', {}, body);
 
       this.logger.info(`🟢 Order placed: ${side} ${qty} (${tradeSide} ${positionSide})`, res);
       this.sendMessage?.(`🟢 Order: ${side} ${qty} (${tradeSide} ${positionSide})`);
@@ -105,7 +134,7 @@ class BitgetClient {
 
   async cancelAllOrders() {
     try {
-      const res = await this.request('POST', '/api/mix/v1/order/cancel-all-orders', {}, {
+      const res = await this.request('POST', '/api/mix/v1/order/cancelAllOrders', {}, {
         symbol: this.config.symbol,
         marginCoin: this.config.marginCoin,
       });
@@ -120,24 +149,24 @@ class BitgetClient {
     }
   }
 
-  async openMainTrade(direction, qty) {
-    const positionSide = direction.toUpperCase() === 'BUY' ? 'long' : 'short';
+  async openMainTrade(side, qty) {
+    const positionSide = side.toUpperCase() === 'BUY' ? 'long' : 'short';
     const success = await this.setLeverage(this.config.symbol, this.config.leverage, positionSide);
     if (!success) throw new Error('Leverage setup failed');
-    return this.placeOrder('', qty, 'open', positionSide);
+    return this.placeOrder(side, qty, 'open', positionSide);
   }
 
-  async closeMainTrade(direction, qty) {
-    const positionSide = direction.toUpperCase() === 'BUY' ? 'long' : 'short';
-    return this.placeOrder('', qty, 'close', positionSide);
+  async closeMainTrade(side, qty) {
+    const positionSide = side.toUpperCase() === 'BUY' ? 'long' : 'short';
+    return this.placeOrder(side, qty, 'close', positionSide);
   }
 
-  async openHedgeTrade(direction, qty) {
-    return this.openMainTrade(direction, qty);
+  async openHedgeTrade(side, qty) {
+    return this.openMainTrade(side, qty);
   }
 
-  async closeHedgeTrade(direction, qty) {
-    return this.closeMainTrade(direction, qty);
+  async closeHedgeTrade(side, qty) {
+    return this.closeMainTrade(side, qty);
   }
 }
 
