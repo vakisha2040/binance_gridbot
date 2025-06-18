@@ -1,7 +1,6 @@
 require('dotenv').config();
 const { RestClientV2 } = require('bitget-api');
 
-//const { BitgetApi } = require('bitget-api');
 const config = require('./config.json');
 
 class BitgetClient {
@@ -11,9 +10,9 @@ class BitgetClient {
     this.sendMessage = () => {};
 
     this.client = new RestClientV2({
-      apiKey: cfg.apiKey || process.env.BITGET_API_KEY,
-      apiSecret: cfg.apiSecret || process.env.BITGET_API_SECRET,
-      passphrase: cfg.apiPassphrase || process.env.BITGET_API_PASSPHRASE,
+      apiKey: "bg_e61c425c34ff25e3e46373440f17499f",
+      apiSecret: "2c0e769f857c778bb005c77f9a45b57d3d81ca4d9bab58e3692e5f920da21c12",
+      passphrase: "opeyemi09",
     });
   }
 
