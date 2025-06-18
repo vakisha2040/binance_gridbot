@@ -2,9 +2,9 @@
   "name": "bybit-grid-bot",
   "version": "1.0.0",
   "description": "A Binance Grid Trading Bot with Telegram and WebSocket Integration",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "author": "akinboro adesina",
   "license": "MIT",
