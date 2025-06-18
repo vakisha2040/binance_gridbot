@@ -1,7 +1,4 @@
 {
-"apiKey": "bg_e61c425c34ff25e3e46373440f17499f",
-"apiSecret": "2c0e769f857c778bb005c77f9a45b57d3d81ca4d9bab58e3692e5f920da21c12",
-   "apiPassphrase":"opeyemi09",
   "symbol": "BTCUSDT_UMCBL",
   "marginCoin": "USDT",
   "tickSize": 0.01,
