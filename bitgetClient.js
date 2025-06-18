@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { BitgetRestClient } = require('bitget-api-node-sdk');
+const  BitgetRestClient  = require('bitget-api-node-sdk');
 const config = require('./config.json');
 
 class BitgetClient {
