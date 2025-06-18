@@ -94,44 +94,41 @@ class BitgetClient {
     }
   }
 
-  async placeOrder(_, qty, tradeSide = 'open', positionSide = 'long') {
-    try {
-      let side;
-      if (tradeSide === 'open') {
-        side = positionSide === 'long' ? 'buy' : 'sell';
-      } else {
-        side = positionSide === 'long' ? 'sell' : 'buy';
-        const actualQty = await this.getPositionSize(positionSide);
-        if (actualQty <= 0) {
-          throw new Error(`No ${positionSide} position to close.`);
-        }
-        qty = Math.min(qty, actualQty);
-      }
-
-      const body = {
-        symbol: this.config.symbol,
-        marginCoin: this.config.marginCoin,
-        marginMode: this.config.marginMode || 'crossed',
-        size: String(qty),
-        side,
-        tradeSide,
-        orderType: 'market',
-        force: 'gtc',
-        reduceOnly: tradeSide === 'close' ? 'true' : 'false',
-      };
-
-      const res = await this.request('POST', '/api/mix/v1/order/placeOrder', {}, body);
-
-      this.logger.info(`🟢 Order placed: ${side} ${qty} (${tradeSide} ${positionSide})`, res);
-      this.sendMessage?.(`🟢 Order: ${side} ${qty} (${tradeSide} ${positionSide})`);
-      return res;
-    } catch (e) {
-      this.logger.error('❌ Order failed', e);
-      this.sendMessage?.(`❌ Order failed: ${e.message}`);
-      throw e;
+async placeOrder(userSide, qty, tradeSide = 'open', positionSide = 'long') {
+  try {
+    // Determine actual side based on trade intent
+    let side;
+    if (tradeSide === 'open') {
+      side = positionSide === 'long' ? 'buy' : 'sell';
+    } else if (tradeSide === 'close') {
+      side = positionSide === 'long' ? 'sell' : 'buy';
+    } else {
+      throw new Error('Invalid tradeSide: must be open or close');
     }
-  }
 
+    const res = await this.request('POST', '/api/v2/mix/order/place-order', {}, {
+      symbol: this.config.symbol,
+      marginCoin: this.config.marginCoin,
+      marginMode: this.config.marginMode || 'crossed',
+      productType: 'umcbl',
+      size: String(qty),
+      side,
+      tradeSide,
+      orderType: 'market',
+      reduceOnly: 'NO',
+      force: 'gtc',
+    });
+
+    this.logger.info(`Order placed: ${side.toUpperCase()} ${qty} (${tradeSide} ${positionSide})`, res);
+    this.sendMessage?.(`🟢 Order: ${side.toUpperCase()} ${qty} (${tradeSide} ${positionSide})`);
+    return res;
+  } catch (e) {
+    this.logger.error('Order failed', e);
+    this.sendMessage?.(`❌ Order failed: ${e.message}`);
+    throw e;
+  }
+}
+  
   async cancelAllOrders() {
     try {
       const res = await this.request('POST', '/api/mix/v1/order/cancelAllOrders', {}, {
