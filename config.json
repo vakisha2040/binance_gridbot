@@ -5,14 +5,14 @@
   "pricePrecision": 2,
   "stepSize": 1,
   "leverage": 70,
-  "marginMode": "cross"
+  "marginMode": "cross",
   "orderSize": 0.002,
   "startPrice": null,
-  "tradeEntrySpacing": 200,
+  "tradeEntrySpacing": 150,
   "trailingBoundary": 240,
   "maxHedgeTrailDistance": 300,
   "trailTriggerDistance": 200,
-  "gridSpacing": 200,
+  "gridSpacing": 150,
   "gridLevels": 120,
   "gridStopLossPercent": 0.9,
   "cooldownTime": 60
