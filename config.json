@@ -5,6 +5,7 @@
   "pricePrecision": 2,
   "stepSize": 1,
   "leverage": 70,
+  "marginMode": "cross"
   "orderSize": 0.002,
   "startPrice": null,
   "tradeEntrySpacing": 200,
