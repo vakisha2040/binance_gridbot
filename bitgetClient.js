@@ -76,7 +76,7 @@ class BitgetClient {
         symbol: this.config.symbol,
         marginCoin: this.config.marginCoin,
         marginMode: this.config.marginMode || 'isolated',
-        productType: 'USDT-FUTURES',
+        productType: 'umcbl', 
         size: String(qty),
         side: side.toLowerCase(),
         tradeSide,
