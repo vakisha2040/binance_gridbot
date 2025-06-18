@@ -1,4 +1,6 @@
-const { BitgetApi } = require('bitget-api');
+const { RestClientV2 } = require('bitget-api');
+
+//const { BitgetApi } = require('bitget-api');
 const config = require('./config.json');
 
 class BitgetClient {
@@ -7,7 +9,7 @@ class BitgetClient {
     this.logger = logger;
     this.sendMessage = () => {};
 
-    this.client = new BitgetApi({
+    this.client = new RestClientV2({
       apiKey: cfg.apiKey || process.env.BITGET_API_KEY,
       apiSecret: cfg.apiSecret || process.env.BITGET_API_SECRET,
       passphrase: cfg.apiPassphrase || process.env.BITGET_API_PASSPHRASE,
