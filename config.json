@@ -1,7 +1,7 @@
 {
   "symbol": "BTCUSDT_UMCBL",
   "marginCoin": "USDT",
-  "tickSize": 0.01
+  "tickSize": 0.01,
   "pricePrecision": 2,
   "stepSize": 1,
   "leverage": 70,
