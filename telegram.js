@@ -11,7 +11,7 @@ const state = require('./state');
 
 const app = express();
 const token = process.env.TELEGRAM_TOKEN;
-const WEBHOOK_URL = "https://binancegridbot-production.up.railway.app";
+const WEBHOOK_URL = "https://bitget-gridbot.onrender.com";
 // e.g., https://yourdomain.com or https://abc123.ngrok.io
 const ADMIN_ID = process.env.TELEGRAM_ID;
 const CONFIG_PATH = path.resolve(__dirname, './config.json');
