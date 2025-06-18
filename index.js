@@ -8,7 +8,7 @@ const { bot, webhookPath } = require('./telegram');
 const { startBot } = require('./bot');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 app.use(bodyParser.json());
 
