@@ -360,7 +360,79 @@ function calculateTrailingHedgeOpenPrice(lastClose, currentPrice, gridSpacing, t
         newOpenPrice = lastClose + maxHedgeTrailDistance;
       else
         newOpenPrice = lastClose - maxHedgeTrailDistance;
+   // TRAILING STOP LOGIC for hedge as for main trade
+async function handleHedgeTrade(price) {
+  const hedgeTrade = state.getHedgeTrade();
+  if (!hedgeTrade) return;
+
+  const direction = hedgeTrade.side === 'Buy' ? 1 : -1;
+  const currentLevel = hedgeTrade.level;
+  const nextLevelPrice = toPrecision(hedgeTrade.entry + direction * config.gridSpacing * (currentLevel + 1));
+
+  // --- GRID ADVANCE & TRAILING STOP LOGIC ---
+  if (
+    (hedgeTrade.side === 'Buy' && price >= nextLevelPrice) ||
+    (hedgeTrade.side === 'Sell' && price <= nextLevelPrice)
+  ) {
+    const previousLevel = currentLevel;
+    hedgeTrade.level += 1;
+    sendMessage(`📊 Hedge trade reached level ${hedgeTrade.level} at ${price}`);
+
+    if (hedgeTrade.level >= 1) {
+      // Trailing stop: midpoint between prev and current grid level
+      const prevLevelPrice = hedgeTrade.entry + direction * config.gridSpacing * previousLevel;
+      const currLevelPrice = hedgeTrade.entry + direction * config.gridSpacing * hedgeTrade.level;
+      hedgeTrade.stopLoss = toPrecision(prevLevelPrice + config.gridStopLossPercent * (currLevelPrice - prevLevelPrice));
+      sendMessage(`🔒 Hedge trade stop loss updated to ${hedgeTrade.stopLoss}`);
     }
+  }
+
+  // --- STOP LOSS CHECK ---
+  if (hedgeTrade.level >= 1 && hedgeTrade.stopLoss !== null) {
+    if (
+      (hedgeTrade.side === 'Buy' && price <= hedgeTrade.stopLoss) ||
+      (hedgeTrade.side === 'Sell' && price >= hedgeTrade.stopLoss)
+    ) {
+      await closeHedgeTrade(price);
+      return;
+    }
+  }
+}
+
+async function closeHedgeTrade(price) {
+  try {
+    const hedgeTrade = state.getHedgeTrade();
+    if (!hedgeTrade) return;
+    await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize);
+    sendMessage(`❌ Hedge trade closed at ${price}`);
+    lastHedgeClosePrice = price;
+    state.clearHedgeTrade();
+
+    // Immediately reset the boundary for the next hedge (no cooldown)
+    setImmediateHedgeBoundary(price);
+
+  } catch (e) {
+    sendMessage(`❌ Failed to close hedge trade: ${e.message}`);
+  }
+}
+
+// New: Calculate trailing hedge open price and set boundaries accordingly
+function calculateTrailingHedgeOpenPrice(lastClose, currentPrice, gridSpacing, trailingBoundary, maxHedgeTrailDistance, mainTradeSide) {
+  const distance = Math.abs(currentPrice - lastClose);
+
+  let newOpenPrice;
+  if (distance > trailingBoundary) {
+    newOpenPrice = lastClose + 0.5 * (currentPrice - lastClose);
+    // Clamp within maxHedgeTrailDistance if configured
+    if (maxHedgeTrailDistance && Math.abs(newOpenPrice - lastClose) > maxHedgeTrailDistance) {
+      if (currentPrice > lastClose)
+        newOpenPrice = lastClose + maxHedgeTrailDistance;
+      else
+        newOpenPrice = lastClose - maxHedgeTrailDistance;
+    }
+    sendMessage(
+      `⚡️ Hedge boundary adjusted for sharp move:\n` +
+ }
     sendMessage(
       `⚡️ Hedge boundary adjusted for sharp move:\n` +
       `Last hedge close: ${lastClose}, Current price: ${currentPrice}, Distance: ${distance}, New hedge open price: ${newOpenPrice}`
