@@ -12,7 +12,7 @@ const app = express();
 const token = process.env.TELEGRAM_TOKEN;
 const WEBHOOK_URL = "https://binance-gridbot.onrender.com";
 // e.g., https://yourdomain.com or https://abc123.ngrok.io
-const ADMIN_ID = "6822395868";
+const ADMIN_ID = process.env.TELEGRAM_ID;
 const CONFIG_PATH = path.resolve(__dirname, './config.json');
 
 // Setup Telegram bot with no polling
