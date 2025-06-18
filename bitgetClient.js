@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { RestClientV2 } = require('bitget-api');
 
 //const { BitgetApi } = require('bitget-api');
