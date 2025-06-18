@@ -18,26 +18,32 @@ sign(timestamp, method, path, body = '')
     const payload = `${timestamp}${method}${path}${body}`; 
                 return crypto.createHmac('sha256', this.apiSecret).update(payload).digest('base64'); 
                                          }
+async request(method, path, params = {}, body = null) {
+  const timestamp = Date.now().toString();
+  const query = method === 'GET' && Object.keys(params).length
+    ? `?${new URLSearchParams(params)}`
+    : '';
+  const fullPath = `${path}${query}`;
+  const url = `${this.baseURL}${fullPath}`;
+  const bodyStr = body ? JSON.stringify(body) : '';
+  const signature = this.sign(timestamp, method, fullPath, bodyStr);
 
-async request(method, path, params = {}, body = null) { const timestamp = Date.now().toString(); const query = method === 'GET' && Object.keys(params).length ? ?${new URLSearchParams(params)} : ''; const fullPath = ${path}${query}; const url = ${this.baseURL}${fullPath}; const bodyStr = body ? JSON.stringify(body) : ''; const signature = this.sign(timestamp, method, fullPath, bodyStr);
+  const res = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'ACCESS-KEY': this.apiKey,
+      'ACCESS-SIGN': signature,
+      'ACCESS-TIMESTAMP': timestamp,
+      'ACCESS-PASSPHRASE': this.passphrase,
+      'locale': 'en-US',
+    },
+    body: method !== 'GET' ? bodyStr : undefined,
+  });
 
-const res = await fetch(url, {
-  method,
-  headers: {
-    'Content-Type': 'application/json',
-    'ACCESS-KEY': this.apiKey,
-    'ACCESS-SIGN': signature,
-    'ACCESS-TIMESTAMP': timestamp,
-    'ACCESS-PASSPHRASE': this.passphrase,
-    'locale': 'en-US',
-  },
-  body: method !== 'GET' ? bodyStr : undefined,
-});
-
-const json = await res.json();
-if (json.code !== '00000') throw new Error(json.msg || 'Unknown error');
-return json.data;
-
+  const json = await res.json();
+  if (json.code !== '00000') throw new Error(json.msg || 'Unknown error');
+  return json.data;
 }
 
 setSendMessage(fn) { this.sendMessage = fn; }
