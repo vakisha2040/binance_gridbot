@@ -53,7 +53,7 @@ class BitgetClient {
 
 async setLeverage(symbol, leverage, holdSide = 'long') {
   try {
-    const res = await this.request('POST', '/api/mix/v1/account/set-leverage', {}, {
+    const res = await this.request('POST', '/api/mix/v1/account/setLeverage', {}, {
       symbol,
       marginCoin: this.config.marginCoin,
       marginMode: 'crossed', // ✅ for cross margin
