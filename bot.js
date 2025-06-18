@@ -33,7 +33,7 @@ let lastHedgeClosePrice = null;
 // state to state.json
 async function startBot() {
   fetchPrecision(config);
-  startPolling(2000);
+  startPolling(1000);
   await waitForFirstPrice();
   state.startBot();
   sendMessage('🤖 Bot started');
@@ -98,7 +98,7 @@ async function monitorPrice() {
   while (state.isRunning()) {
     const price = getCurrentPrice();
     if (!price) {
-      await delay(2000);
+      await delay(1000);
       continue;
     }
 
@@ -109,7 +109,7 @@ async function monitorPrice() {
       } else if (price <= boundaries.bottom) {
         await openMainTrade('Sell', price);
       }
-      await delay(2000);
+      await delay(1000);
       continue;
     }
 
@@ -123,7 +123,7 @@ async function monitorPrice() {
       await handleHedgeTrade(price);
     }
 
-    await delay(2000);
+    await delay(1000);
   }
 }
 
