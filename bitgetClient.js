@@ -13,8 +13,10 @@ class BitgetClient {
     this.baseURL = 'https://api.bitget.com';
   }
 
-sign(timestamp, method, path, body = '') { const payload = ${timestamp}${method}${path}${body}; 
-                                          return crypto.createHmac('sha256', this.apiSecret).update(payload).digest('base64'); 
+sign(timestamp, method, path, body = '') 
+{ 
+    const payload = `${timestamp}${method}${path}${body}`; 
+                return crypto.createHmac('sha256', this.apiSecret).update(payload).digest('base64'); 
                                          }
 
 async request(method, path, params = {}, body = null) { const timestamp = Date.now().toString(); const query = method === 'GET' && Object.keys(params).length ? ?${new URLSearchParams(params)} : ''; const fullPath = ${path}${query}; const url = ${this.baseURL}${fullPath}; const bodyStr = body ? JSON.stringify(body) : ''; const signature = this.sign(timestamp, method, fullPath, bodyStr);
