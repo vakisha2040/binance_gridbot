@@ -474,6 +474,7 @@ module.exports = {
   closeMainTrade,
   closeHedgeTrade,
   manualCloseMainTrade,
+  manualCloseHedgeTrade,
   promoteHedgeToMain,
   resetBot,
 };
