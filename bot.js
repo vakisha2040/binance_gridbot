@@ -462,7 +462,7 @@ async function manualCloseMainTrade() {
 async function manualCloseHedgeTrade() {
   const price = getCurrentPrice();
   if (!price || !state.getHedgeTrade()) return;
-  await closeMainTrade(price, true);
+  await closeHedgeTrade(price, true);
 }
 
 module.exports = {
