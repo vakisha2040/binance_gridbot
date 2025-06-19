@@ -346,12 +346,12 @@ const currLevelPrice = hedgeTrade.entry + direction * getGridSpacing(hedgeTrade.
   }
 }
 
-async function closeHedgeTrade(price) {
+async function closeHedgeTrade(price, manual= false) {
   try {
     const hedgeTrade = state.getHedgeTrade();
     if (!hedgeTrade) return;
     await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize);
-    sendMessage(`❌ Hedge trade closed at ${price}`);
+    sendMessage(`❌ Hedge rade closed at ${price}${manual ? " (manual)" : ""}`);
     lastHedgeClosePrice = price;
     state.clearHedgeTrade();
 
@@ -438,6 +438,12 @@ function delay(ms) {
 async function manualCloseMainTrade() {
   const price = getCurrentPrice();
   if (!price || !state.getMainTrade()) return;
+  await closeMainTrade(price, true);
+}
+
+async function manualCloseHedgeTrade() {
+  const price = getCurrentPrice();
+  if (!price || !state.getHedgeqTrade()) return;
   await closeMainTrade(price, true);
 }
 
