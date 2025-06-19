@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const config = require('./config.json');
-const { startBot, stopBot, setSendMessage, manualCloseMainTrade, resetBot } = require('./bot');
+const { startBot, stopBot, setSendMessage, manualCloseMainTrade,manualCloseHedgeTrade, resetBot } = require('./bot');
 const state = require('./state');
 
 const app = express();
