@@ -7,7 +7,7 @@
   "orderSize": 0.003,
   "startPrice": null,
   "tradeEntrySpacing": 100,
-  "trailingBoundary": 120,
+  "trailingBoundary": 160,
   "maxHedgeTrailDistance": 200,
   "trailTriggerDistance": 120,
   "gridSpacing": 100,
