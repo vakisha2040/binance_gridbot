@@ -15,5 +15,6 @@
   "gridLevels": 120,
   "gridStopLossPercent": 0.75,
   "cooldownTime": 60,
+  "hedgeKillCooldownSeconds": 60,
   "testnet": false
 }
