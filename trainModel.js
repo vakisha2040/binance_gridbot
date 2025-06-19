@@ -1,7 +1,7 @@
 const fs = require('fs');
 const tf = require('@tensorflow/tfjs-node');
 const ss = require('simple-statistics');
-const { fetchCandles } = require('../services/fetchCandles');
+const { fetchCandles } = require('./fetchCandles');
 
 function extractFeatures(candles) {
   const closes = candles.map(c => c.close);
