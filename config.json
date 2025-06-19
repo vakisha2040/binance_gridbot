@@ -8,7 +8,7 @@
   "startPrice": null,
   "tradeEntrySpacing": 100,
   "trailingBoundary": 120,
-  "maxHedgeTrailDistance": 120,
+  "maxHedgeTrailDistance": 200,
   "trailTriggerDistance": 120,
   "gridSpacing": 100,
   "zeroLevelSpacing":150,
