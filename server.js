@@ -3,7 +3,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cron = require('node-cron');
 const axios = require('axios');
-
+const { scheduleDynamicConfigUpdate } = require('./runtimeScheduler');
+scheduleDynamicConfigUpdate();
 const { bot, webhookPath } = require('./telegram');
 const { startBot } = require('./bot');
 
