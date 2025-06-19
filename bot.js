@@ -450,7 +450,13 @@ function setImmediateHedgeBoundary(price) {
     );
     boundaries.bottom = newBoundary;
     boundaries.top = null;
-    sendMessage(`🟦 New bottom boundary for next hedge: ${boundaries.bottom}`);
+    sendMessage(
+      `🟦 New bottom hedge boundary set\n` +
+      `📉 Last close: ${lastClose}\n` +
+      `📈 Current price: ${price}\n` +
+      `📏 Distance moved: ${distance}\n` +
+      `🎯 New boundary: ${boundaries.bottom}`
+    );
   } else if (mainTrade.side === 'Sell') {
     newBoundary = calculateTrailingHedgeOpenPrice(
       lastClose,
@@ -462,7 +468,13 @@ function setImmediateHedgeBoundary(price) {
     );
     boundaries.top = newBoundary;
     boundaries.bottom = null;
-    sendMessage(`🟥 New top boundary for next hedge: ${boundaries.top}`);
+    sendMessage(
+      `🟥 New top hedge boundary set\n` +
+      `📉 Last close: ${lastClose}\n` +
+      `📈 Current price: ${price}\n` +
+      `📏 Distance moved: ${distance}\n` +
+      `🎯 New boundary: ${boundaries.top}`
+    );
   }
   persistBoundaries();
 }
