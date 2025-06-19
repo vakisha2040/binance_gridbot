@@ -1,0 +1,11 @@
+[
+  {
+    "tradeEntrySpacing": 100,
+    "trailingBoundary": 150,
+    "maxHedgeTrailDistance": 200,
+    "trailTriggerDistance": 120,
+    "gridSpacing": 100,
+    "zeroLevelSpacing": 140
+  },
+  ...
+]
