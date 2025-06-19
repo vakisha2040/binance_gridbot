@@ -364,33 +364,51 @@ async function closeHedgeTrade(price, manual= false) {
 }
 
 // New: Calculate trailing hedge open price and set boundaries accordingly
-function calculateTrailingHedgeOpenPrice(lastClose, currentPrice, gridSpacing, trailingBoundary, maxHedgeTrailDistance, mainTradeSide) {
-  const distance = Math.abs(currentPrice - lastClose);
 
+function calculateTrailingHedgeOpenPrice(
+  lastClose,
+  currentPrice,
+  gridSpacing,
+  trailingBoundary,
+  maxHedgeTrailDistance,
+  mainTradeSide
+) {
+  const distance = Math.abs(currentPrice - lastClose);
   let newOpenPrice;
+
   if (distance > trailingBoundary) {
+    // Price moved sharply, set re-entry halfway between last close and current
     newOpenPrice = lastClose + 0.5 * (currentPrice - lastClose);
-    // Clamp within maxHedgeTrailDistance if configured
-    if (maxHedgeTrailDistance && Math.abs(newOpenPrice - lastClose) > maxHedgeTrailDistance) {
-      if (currentPrice > lastClose)
-        newOpenPrice = lastClose + maxHedgeTrailDistance;
-      else
-        newOpenPrice = lastClose - maxHedgeTrailDistance;
+
+    // Clamp distance if max limit is defined
+    const move = Math.abs(newOpenPrice - lastClose);
+    if (maxHedgeTrailDistance && move > maxHedgeTrailDistance) {
+      newOpenPrice = currentPrice > lastClose
+        ? lastClose + maxHedgeTrailDistance
+        : lastClose - maxHedgeTrailDistance;
     }
+
     sendMessage(
       `⚡️ Hedge boundary adjusted for sharp move:\n` +
-      `Last hedge close: ${lastClose}, Current price: ${currentPrice}, Distance: ${distance}, New hedge open price: ${newOpenPrice}`
+      `Last hedge close: ${lastClose}, Current price: ${currentPrice}, Distance: ${distance}, New hedge open price: ${toPrecision(newOpenPrice)}`
     );
+
   } else {
+    // Use default re-entry spacing
+    const spacing = config.zeroLevelSpacing || gridSpacing;
     newOpenPrice = mainTradeSide === 'Buy'
-      ? lastClose - zeroLeveSpacing
-      : lastClose + zeroLevelSpacing;
+      ? lastClose - spacing
+      : lastClose + spacing;
+
     sendMessage(
-      `🔲 Hedge boundary (default grid): Last hedge close: ${lastClose}, New hedge open price: ${newOpenPrice}`
+      `🔲 Hedge boundary (default grid):\n` +
+      `Last hedge close: ${lastClose}, New hedge open price: ${toPrecision(newOpenPrice)}`
     );
   }
+
   return toPrecision(newOpenPrice);
 }
+
 
 function setImmediateHedgeBoundary(price) {
   const mainTrade = state.getMainTrade();
@@ -443,7 +461,7 @@ async function manualCloseMainTrade() {
 
 async function manualCloseHedgeTrade() {
   const price = getCurrentPrice();
-  if (!price || !state.getHedgeqTrade()) return;
+  if (!price || !state.getHedgeTrade()) return;
   await closeMainTrade(price, true);
 }
 
