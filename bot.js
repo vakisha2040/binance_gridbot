@@ -1,4 +1,5 @@
 // refactor for zeroLevel entry spacing
+//also refactor for dynamic new hedge price settings
 const {
   calculateNextPrice,
   calculateStopLoss,
@@ -29,6 +30,11 @@ function setSendMessage(fn) {
 let { trailingBoundary, boundaries } = loadBoundary();
 if (!boundaries) boundaries = { top: null, bottom: null };
 let lastHedgeClosePrice = null;
+
+// for new hedge boundary update
+let lastBoundaryUpdateTime = 0;
+const BOUNDARY_UPDATE_INTERVAL = 30 * 1000; // 30 seconds
+
 
 // This start supports persisted
 // state to state.json
@@ -101,6 +107,7 @@ async function initializeBoundaries() {
   sendMessage(`🔲 Boundaries set: Top ${boundaries.top}, Bottom ${boundaries.bottom}`);
 }
 
+
 async function monitorPrice() {
   while (state.isRunning()) {
     const price = getCurrentPrice();
@@ -109,7 +116,6 @@ async function monitorPrice() {
       continue;
     }
 
-    // If no open main or hedge, check for boundary cross to open main trade
     if (!state.getMainTrade() && !state.getHedgeTrade()) {
       if (price >= boundaries.top) {
         await openMainTrade('Buy', price);
@@ -120,20 +126,32 @@ async function monitorPrice() {
       continue;
     }
 
-    // Update main trade logic
     if (state.getMainTrade()) {
       await handleMainTrade(price);
     }
 
-    // Update hedge trade logic
     if (state.getHedgeTrade()) {
       await handleHedgeTrade(price);
+    }
+
+    // 🔄 Dynamic trailing hedge boundary update (with throttling)
+    const now = Date.now();
+    if (
+      state.getMainTrade() &&
+      !state.getHedgeTrade() &&
+      lastHedgeClosePrice &&
+      Math.abs(price - lastHedgeClosePrice) > (config.trailingBoundary || 200) &&
+      now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL
+    ) {
+      setImmediateHedgeBoundary(price);
+      lastBoundaryUpdateTime = now;
     }
 
     await delay(1000);
   }
 }
 
+                             
 async function openMainTrade(side, entryPrice) {
   try {
     await bybit.openMainTrade(side, config.orderSize);
