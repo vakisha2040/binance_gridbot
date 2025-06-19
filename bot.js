@@ -35,6 +35,9 @@ let lastHedgeClosePrice = null;
 let lastBoundaryUpdateTime = 0;
 const BOUNDARY_UPDATE_INTERVAL = 30 * 1000; // 30 seconds
 
+const { getDynamicConfig } = require('./ml/predictConfig');
+const candleData = require('./services/fetchCandles');
+
 
 // This start supports persisted
 // state to state.json
@@ -45,7 +48,21 @@ function getGridSpacing(level) {
 }
 
 async function startBot() {
+  // ml code starts from here
+  const latestCandles = await candleData.fetchLast50();
+const dynamicConfig = await getDynamicConfig(latestCandles);
+
+// Diagnostic: compare default vs predicted
+Object.entries(dynamicConfig).forEach(([key, value]) => {
+  if (config[key] !== value) {
+    sendMessage(`🔧 ${key} updated: ${config[key]} ➡️ ${value}`);
+  }
+});
+
+Object.assign(config, dynamicConfig);
+sendMessage(`🤖 Dynamic config loaded:\n${JSON.stringify(dynamicConfig, null, 2)}`);
   fetchPrecision(config);
+  
   startPolling(1000);
   await waitForFirstPrice();
   state.startBot();
