@@ -132,6 +132,7 @@ async function monitorPrice() {
 
     if (state.getHedgeTrade()) {
       await handleHedgeTrade(price);
+      await killHedge();
     }
 
     // 🔄 Dynamic trailing hedge boundary update (with throttling)
@@ -312,7 +313,8 @@ async function openHedgeTrade(side, entryPrice) {
       hedge: true,
       gridLevels: [],
       stopLoss: null,
-      breakthroughPrice, // Store breakthrough price
+      breakthroughPrice,
+      openedAt: Date.now(),
     });
     sendMessage(`🛡️ Hedge trade opened: ${side} at ${entryPrice} (Breakthrough: ${breakthroughPrice})`);
   } catch (e) {
@@ -364,15 +366,44 @@ const currLevelPrice = hedgeTrade.entry + direction * getGridSpacing(hedgeTrade.
   }
 }
 
+//close hedge after 60 secs if price move against it
+async function killHedge() {
+  const hedge = state.getHedgeTrade();
+  if (!hedge) return;
+
+  const price = getCurrentPrice();
+  const now = Date.now();
+  const cooldownMs = (config.hedgeKillCooldownSeconds || 60) * 1000;
+
+  if (!hedge.openedAt || now - hedge.openedAt < cooldownMs) return;
+
+  const isBuy = hedge.side === 'Buy';
+  const shouldKill =
+    (isBuy && price < hedge.entry) ||
+    (!isBuy && price > hedge.entry);
+
+  if (shouldKill) {
+    sendMessage(
+      `💀 Hedge kill triggered:\n` +
+      `🔸 Side: ${hedge.side}\n` +
+      `📉 Entry: ${hedge.entry}\n` +
+      `📈 Current: ${price}\n` +
+      `⏱️ Alive for: ${Math.round((now - hedge.openedAt) / 1000)} sec`
+    );
+    await closeHedgeTrade(price, true);
+  }
+}
+
+
+
 async function closeHedgeTrade(price, manual= false) {
   try {
     const hedgeTrade = state.getHedgeTrade();
     if (!hedgeTrade) return;
     await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize);
-    sendMessage(`❌ Hedge rade closed at ${price}${manual ? " (manual)" : ""}`);
+    sendMessage(`❌ Hedge trade closed at ${price}${manual ? " (manual or kill)" : ""}`);
     lastHedgeClosePrice = price;
     state.clearHedgeTrade();
-
     // Immediately reset the boundary for the next hedge (no cooldown)
     setImmediateHedgeBoundary(price);
 
@@ -431,53 +462,51 @@ function calculateTrailingHedgeOpenPrice(
 function setImmediateHedgeBoundary(price) {
   const mainTrade = state.getMainTrade();
   if (!mainTrade) return;
-  trailingBoundary = config.trailingBoundary || 200;
-  const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 300;
-  let newBoundary;
 
-  // Use last hedge close for calculation
+  const trailingBoundary = config.trailingBoundary || 200;
+  const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 300;
   const lastClose = lastHedgeClosePrice || price;
 
+  const newBoundary = calculateTrailingHedgeOpenPrice(
+    lastClose,
+    price,
+    config.tradeEntrySpacing,
+    trailingBoundary,
+    maxHedgeTrailDistance,
+    mainTrade.side
+  );
+
+  const distance = Math.abs(price - lastClose);
+
   if (mainTrade.side === 'Buy') {
-    // For Buy, boundary is below price
-    newBoundary = calculateTrailingHedgeOpenPrice(
-      lastClose,
-      price,
-      config.tradeEntrySpacing,
-      trailingBoundary,
-      maxHedgeTrailDistance,
-      mainTrade.side
-    );
     boundaries.bottom = newBoundary;
     boundaries.top = null;
     sendMessage(
       `🟦 New bottom hedge boundary set\n` +
-      `📉 Last close: ${lastClose}\n` +
+      `🔹 Main trade side: Buy\n` +
+      `📉 Last hedge close: ${lastClose}\n` +
       `📈 Current price: ${price}\n` +
       `📏 Distance moved: ${distance}\n` +
-      `🎯 New boundary: ${boundaries.bottom}`
+      `🎯 New bottom boundary: ${boundaries.bottom}`
     );
   } else if (mainTrade.side === 'Sell') {
-    newBoundary = calculateTrailingHedgeOpenPrice(
-      lastClose,
-      price,
-      config.tradeEntrySpacing,
-      trailingBoundary,
-      maxHedgeTrailDistance,
-      mainTrade.side
-    );
     boundaries.top = newBoundary;
     boundaries.bottom = null;
     sendMessage(
       `🟥 New top hedge boundary set\n` +
-      `📉 Last close: ${lastClose}\n` +
+      `🔸 Main trade side: Sell\n` +
+      `📉 Last hedge close: ${lastClose}\n` +
       `📈 Current price: ${price}\n` +
       `📏 Distance moved: ${distance}\n` +
-      `🎯 New boundary: ${boundaries.top}`
+      `🎯 New top boundary: ${boundaries.top}`
     );
   }
+
   persistBoundaries();
 }
+
+
+
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
