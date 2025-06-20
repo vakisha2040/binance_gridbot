@@ -375,26 +375,52 @@ async function killHedge() {
   const hedge = state.getHedgeTrade();
   if (!hedge) return;
 
-  const price = getCurrentPrice();
   const now = Date.now();
-  const cooldownMs = (config.hedgeKillCooldownSeconds || 60) * 1000;
-
-  if (!hedge.openedAt || now - hedge.openedAt < cooldownMs) return;
+  const currentPrice = getCurrentPrice();
+  if (!currentPrice) return;
 
   const isBuy = hedge.side === 'Buy';
-  const shouldKill =
-    (isBuy && price < hedge.entry) ||
-    (!isBuy && price > hedge.entry);
+  const entry = hedge.entry;
+  const spacing = config.hedgeKillSpacing || 100;
+  const cooldown = (config.hedgeKillCooldown || 60) * 1000;
+  const resetMultiplier = config.hedgeKillResetMultiplier || 1.5;
 
-  if (shouldKill) {
-    sendMessage(
-      `💀 Hedge kill triggered:\n` +
-      `🔸 Side: ${hedge.side}\n` +
-      `📉 Entry: ${hedge.entry}\n` +
-      `📈 Current: ${price}\n` +
-      `⏱️ Alive for: ${Math.round((now - hedge.openedAt) / 1000)} sec`
-    );
-    await closeHedgeTrade(price, true);
+  // 1️⃣ Trigger kill condition if price moves away
+  if (!hedge.killTriggered && (
+      (isBuy && currentPrice >= entry + spacing) ||
+      (!isBuy && currentPrice <= entry - spacing)
+  )) {
+    hedge.killTriggered = true;
+    hedge.killTriggerTime = now;
+    sendMessage(`💣 Hedge kill trigger armed for ${hedge.side} at ${entry} — waiting for return`);
+    return;
+  }
+
+  // 2️⃣ If kill is triggered, check if cooldown has passed and price returned
+  if (hedge.killTriggered) {
+    if (now - (hedge.killTriggerTime || 0) >= cooldown) {
+      const shouldKill =
+        (isBuy && currentPrice <= entry) ||
+        (!isBuy && currentPrice >= entry);
+
+      if (shouldKill) {
+        sendMessage(`✅ Hedge kill condition met — closing hedge at ${currentPrice}`);
+        await closeHedgeTrade(currentPrice);
+        setImmediateHedgeBoundary(currentPrice);
+        lastBoundaryUpdateTime = now;
+        return;
+      }
+    }
+
+    // 3️⃣ Optional: RESET if price moves further away (beyond reset spacing)
+    const resetSpacing = spacing * resetMultiplier;
+    if (
+      (isBuy && currentPrice >= entry + resetSpacing) ||
+      (!isBuy && currentPrice <= entry - resetSpacing)
+    ) {
+      hedge.killTriggered = false;
+      sendMessage(`♻️ Hedge kill trigger reset — price moved too far from entry ${entry}`);
+    }
   }
 }
 
@@ -509,60 +535,8 @@ function setImmediateHedgeBoundary(price) {
   persistBoundaries();
 }
 
-
- async function killHedge(price) {
-  const hedge = state.getHedgeTrade();
-  if (!hedge) return;
-
-  const now = Date.now();
-  const cooldown = (config.hedgeKillCooldown || 60) * 1000;
-  const spacing = config.hedgeKillSpacing || 100;
-  const entry = hedge.entry;
-  const isBuy = hedge.side === 'Buy';
-
-  // Store hedge open time if not already set
-  if (!hedge.openTimestamp) {
-    hedge.openTimestamp = now;
-    hedge.killZoneTouched = false;
-    return;
-  }
-
-  const timeSinceOpen = now - hedge.openTimestamp;
-
-  // Track if kill zone was touched
-  if (!hedge.killZoneTouched) {
-    if (
-      (isBuy && price >= entry + spacing) ||
-      (!isBuy && price <= entry - spacing)
-    ) {
-      hedge.killZoneTouched = true;
-      sendMessage(`🎯 Kill zone touched: Hedge ${hedge.side} at ${entry} → Price reached ${price}`);
-    }
-  }
-
-  // Check kill condition (price returns to entry after touching kill zone and cooldown passed)
-  if (
-    hedge.killZoneTouched &&
-    timeSinceOpen >= cooldown &&
-    (
-      (isBuy && price <= entry) ||
-      (!isBuy && price >= entry)
-    )
-  ) {
-    await closeHedgeTrade(price, true);
-    sendMessage(`☠️ Hedge killed at ${price} after reversion to entry ${entry}`);
-
-    setImmediateHedgeBoundary(price);
-    lastBoundaryUpdateTime = now;
-
-    // Clean up markers
-    hedge.killZoneTouched = false;
-    hedge.openTimestamp = null;
-  }
-}
-
-
-function delay(ms) {
+ 
+   function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -635,14 +609,6 @@ async function manualBuyMainTrade() {
     sendMessage('⚠️ Trade not placed: Main or Hedge already active.');
   }
 }
-
-
-
-
-
-
-
-
 
 
 module.exports = {
