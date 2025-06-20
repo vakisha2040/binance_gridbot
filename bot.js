@@ -524,22 +524,46 @@ async function manualCloseHedgeTrade() {
   await closeHedgeTrade(price, true);
 }
 
-async function manualBuyMainTrade() {
- const price = getCurrentPrice();
-  
-if (!state.getMainTrade() && !state.getHedgeTrade()) {
-        await openMainTrade('Buy', price);
-      }
-}
-
 
 async function manualSellMainTrade() {
-  const price = getCurrentPrice();
-if (!state.getMainTrade() && !state.getHedgeTrade()) {
-      await openMainTrade('Sell', price);
-      }
+  let price;
+
+  // Retry until we get a valid price
+  while (true) {
+    price = getCurrentPrice();
+    if (typeof price === 'number' && !isNaN(price)) break;
+
+    sendMessage('⏳ Waiting for valid price to place Sell trade...');
+    await delay(1000); // Retry every second
+  }
+
+  // Only place a trade if there's no active main or hedge trade
+  if (!state.getMainTrade() && !state.getHedgeTrade()) {
+    await openMainTrade('Sell', price);
+  } else {
+    sendMessage('⚠️ Trade not placed: Main or Hedge already active.');
+  }
 }
 
+async function manualBuyMainTrade() {
+  let price;
+
+  // Retry until we get a valid price
+  while (true) {
+    price = getCurrentPrice();
+    if (typeof price === 'number' && !isNaN(price)) break;
+
+    sendMessage('⏳ Waiting for valid price to place Sell trade...');
+    await delay(1000); // Retry every second
+  }
+
+  // Only place a trade if there's no active main or hedge trade
+  if (!state.getMainTrade() && !state.getHedgeTrade()) {
+    await openMainTrade('Buy', price);
+  } else {
+    sendMessage('⚠️ Trade not placed: Main or Hedge already active.');
+  }
+}
 
 
 
