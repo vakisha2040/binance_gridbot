@@ -435,7 +435,9 @@ async function closeHedgeTrade(price, manual= false) {
     await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize);
     sendMessage(`❌ Hedge trade closed at ${price}${manual ? " (manual or kill)" : ""}`);
     lastHedgeClosePrice = price;
+  
     state.clearHedgeTrade();
+    hedge.killAlertSent = false; // reset alert flag
     // Immediately reset the boundary for the next hedge (no cooldown)
     setImmediateHedgeBoundary(price);
 
