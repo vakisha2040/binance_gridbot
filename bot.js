@@ -390,8 +390,8 @@ async function killHedge() {
 
   // 1️⃣ Trigger kill condition if price moves away
   if (!hedge.killTriggered && (
-      (isBuy && currentPrice >= entry + spacing + HBP) ||
-      (!isBuy && currentPrice <= entry - spacing - HBP)
+      (isBuy && currentPrice >= entry + spacing ) ||
+      (!isBuy && currentPrice <= entry - spacing )
   )) {
     hedge.killTriggered = true;
     hedge.killTriggerTime = now;
@@ -443,7 +443,6 @@ async function closeHedgeTrade(price, manual= false) {
     lastHedgeClosePrice = price;
   
     state.clearHedgeTrade();
-    hedge.killAlertSent = false; // reset alert flag
     // Immediately reset the boundary for the next hedge (no cooldown)
     setImmediateHedgeBoundary(price);
 
