@@ -460,7 +460,7 @@ async function killHedge() {
     if (nearEntry) {
       hedge.killTriggered = false;
       hedge.killTriggerTime = null;
-      sendMessage(`♻️ Early kill state reset — price returned toward entry (${entry}) before kill zone`);
+   //   sendMessage(`♻️ Early kill state reset — price returned toward entry (${entry}) before kill zone`);
       return;
     }
   }
