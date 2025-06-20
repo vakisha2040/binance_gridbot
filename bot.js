@@ -36,7 +36,7 @@ let lastBoundaryUpdateTime = 0;
 const BOUNDARY_UPDATE_INTERVAL = 30 * 1000; // 30 seconds
 const HBP = config.hedgeBreakthroughPrice; 
 let preKillStartTime = null; // used before killTrigger is armed
-
+let lastKillResetTime = 0; // Global
 // This start supports persisted
 // state to state.json
 
@@ -429,7 +429,6 @@ async function killHedge() {
 
 */
 // Define persistent tracking values (top-level in file)
-
 async function killHedge() {
   const hedge = state.getHedgeTrade();
   if (!hedge) return;
@@ -440,47 +439,53 @@ async function killHedge() {
 
   const isBuy = hedge.side === 'Buy';
   const entry = hedge.entry;
+
   const spacing = config.hedgeKillSpacing || 100;
   const cooldown = (config.hedgeKillCooldown || 60) * 1000;
   const resetMultiplier = config.hedgeKillResetMultiplier || 1.5;
   const HBP = config.hedgeBreakthroughPrice || 0;
 
-  const triggerPrice = isBuy ? entry + spacing + HBP : entry - spacing - HBP;
+  const triggerPrice = isBuy ? entry + spacing : entry - spacing;
+  const returnPrice = isBuy ? entry + HBP : entry - HBP;
+  const resetThreshold = isBuy
+    ? entry + spacing * resetMultiplier
+    : entry - spacing * resetMultiplier;
 
-  // ⏳ 1️⃣ Pre-Kill Reset Timer: before kill is armed
+  // 1️⃣ EARLY RESET — if price returns to entry area BEFORE kill is armed
   if (!hedge.killTriggered) {
-    const isApproachingKillZone = isBuy ? currentPrice >= entry + spacing : currentPrice <= entry - spacing;
+    const nearEntry =
+      (isBuy && currentPrice <= entry) ||
+      (!isBuy && currentPrice >= entry);
 
-    if (isApproachingKillZone) {
-      if (!preKillStartTime) preKillStartTime = now;
-    } else {
-      if (preKillStartTime && now - preKillStartTime >= 45_000) {
-        // After 45s, price has returned near entry → reset timer
-        sendMessage(`🔄 Price reverted near entry before kill zone — pre-kill reset.`);
-        preKillStartTime = null;
-      }
+    if (nearEntry) {
+      hedge.killTriggered = false;
+      hedge.killTriggerTime = null;
+      sendMessage(`♻️ Early kill state reset — price returned toward entry (${entry}) before kill zone`);
+      return;
     }
   }
 
-  // 2️⃣ Trigger kill condition if price moves far enough
+  // 2️⃣ ARM KILL TRIGGER
   if (!hedge.killTriggered && (
       (isBuy && currentPrice >= triggerPrice) ||
       (!isBuy && currentPrice <= triggerPrice)
   )) {
     hedge.killTriggered = true;
     hedge.killTriggerTime = now;
-    preKillStartTime = null; // Clear any pre-kill tracking
-    sendMessage(`💣 Hedge kill trigger armed at ${currentPrice} for ${hedge.side} (trigger: ${triggerPrice})`);
+    sendMessage(`💣 Hedge kill trigger armed for ${hedge.side} at ${entry} — waiting return to ${returnPrice}`);
     return;
   }
 
-  // 3️⃣ If kill is triggered, wait for price return + cooldown
+  // 3️⃣ EXECUTE KILL IF TRIGGERED + COOLDOWN + RETURN TO ENTRY + HBP
   if (hedge.killTriggered) {
-    if (now - (hedge.killTriggerTime || 0) >= cooldown) {
-      const shouldKill = isBuy ? currentPrice <= entry : currentPrice >= entry;
+    const timeElapsed = now - (hedge.killTriggerTime || 0);
+    if (timeElapsed >= cooldown) {
+      const hasReturned = isBuy
+        ? currentPrice <= returnPrice
+        : currentPrice >= returnPrice;
 
-      if (shouldKill) {
-        sendMessage(`✅ Hedge kill conditions met. Closing hedge at ${currentPrice}`);
+      if (hasReturned) {
+        sendMessage(`✅ Hedge kill confirmed — closing hedge at ${currentPrice}`);
         await closeHedgeTrade(currentPrice);
         setImmediateHedgeBoundary(currentPrice);
         lastBoundaryUpdateTime = now;
@@ -488,17 +493,20 @@ async function killHedge() {
       }
     }
 
-    // 4️⃣ Reset kill trigger if price moves too far
-    const resetSpacing = spacing * resetMultiplier;
-    if (
-      (isBuy && currentPrice >= entry + resetSpacing) ||
-      (!isBuy && currentPrice <= entry - resetSpacing)
-    ) {
+    // 4️⃣ RESET if price moves far beyond kill zone
+    const tooFar =
+      (isBuy && currentPrice >= resetThreshold) ||
+      (!isBuy && currentPrice <= resetThreshold);
+
+    if (tooFar) {
       hedge.killTriggered = false;
-      sendMessage(`♻️ Hedge kill trigger reset — price moved too far from entry ${entry}`);
+      hedge.killTriggerTime = null;
+      sendMessage(`♻️ Hedge kill trigger reset — price moved too far from entry (${entry})`);
     }
   }
 }
+
+      
 
 
 async function closeHedgeTrade(price, manual= false) {
