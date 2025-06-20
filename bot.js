@@ -515,7 +515,10 @@ async function killHedge() {
 async function closeHedgeTrade(price, manual= false) {
   try {
     const hedgeTrade = state.getHedgeTrade();
-    if (!hedgeTrade) return;
+    if (!hedge) {
+  sendMessage(`⚠️ No hedge trade to close.`);
+  return;
+}
     await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize);
     sendMessage(`❌ Hedge trade closed at ${price}${manual ? " (manual or kill)" : ""}`);
     lastHedgeClosePrice = price;
