@@ -133,7 +133,7 @@ async function monitorPrice() {
 
     if (state.getHedgeTrade()) {
       await handleHedgeTrade(price);
-     await killHedge(price);
+     await killHedge();
     }
 
     // 🔄 Dynamic trailing hedge boundary update (with throttling)
