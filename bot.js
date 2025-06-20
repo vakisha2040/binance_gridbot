@@ -289,12 +289,15 @@ function promoteHedgeToMain() {
   hedge.level = 0;
   hedge.hedge = false;
   hedge.stopLoss = null;
-  // breakthroughPrice is kept as-is for new main
+  hedge.killZoneTouched = false;      // 🔄 Reset kill tracking
+  hedge.openTimestamp = null;         // 🔄 Reset kill tracking timer
+
   state.setMainTrade(hedge);
   state.clearHedgeTrade();
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
   initializeHedgePromotionBoundary();
-}
+} 
+  
 
 async function openHedgeTrade(side, entryPrice) {
   try {
