@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const config = require('./config.json');
-const { startBot, stopBot, setSendMessage, manualCloseMainTrade,manualCloseHedgeTrade, resetBot } = require('./bot');
+const { startBot, stopBot, setSendMessage, manualCloseMainTrade, manualBuyMainTrade, manualSellMainTrade, manualCloseHedgeTrade, resetBot } = require('./bot');
 const state = require('./state');
 
 const app = express();
@@ -57,10 +57,11 @@ function getInlineKeyboard() {
           { text: '📄 View Config', callback_data: 'view_config' },
           { text: '✏️ Update Config', callback_data: 'update_config' }
         ],
-        [
-          { text: '🛑 Stop Main Trade', callback_data: 'stop_main_trade' },
-          { text: '🛑 Stop Hedge Trade', callback_data: 'stop_hedge_trade' }
+         [
+         { text: '🟢 🔼  Buy', callback_data: 'buy_main_trade' },
+          { text: '🔴🔻 Sell', callback_data: 'sell_main_trade' }
         ]
+        
       ]
     }
   };
@@ -102,6 +103,16 @@ bot.on('callback_query', async (query) => {
       respond('🛑 Closing main trade...');
       await manualCloseMainTrade();
       respond('✅ Main trade closed.');
+      break;
+
+    case 'buy_main_trade':
+      respond('🔼  Buy main trade...');
+      await manualBuyMainTrade();
+      break;
+      
+      case 'sell_main_trade':
+      respond('🔻 Sell main trade...');
+      await manualSellMainTrade();
       break;
 
 
