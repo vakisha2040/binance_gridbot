@@ -524,6 +524,36 @@ async function manualCloseHedgeTrade() {
   await closeHedgeTrade(price, true);
 }
 
+
+async function manualBuyMainTrade() {
+ const price = getCurrentPrice();
+    if (!price) {
+      await delay(2000);
+      continue;
+  await openMainTrade('Buy', price);
+}      
+}
+
+
+async function manualSellMainTrade() {
+  const price = getCurrentPrice();
+    if (!price) {
+      await delay(2000);
+      continue;
+     await openMainTrade('Sell', price);
+}
+}
+
+
+
+
+
+
+
+
+
+
+
 module.exports = {
   startBot,
   stopBot,
@@ -534,6 +564,8 @@ module.exports = {
   closeHedgeTrade,
   manualCloseMainTrade,
   manualCloseHedgeTrade,
+  manualBuyMainTrade,
+manualSellMainTrade,
   promoteHedgeToMain,
   resetBot,
 };
