@@ -314,6 +314,7 @@ async function openHedgeTrade(side, entryPrice) {
       gridLevels: [],
       stopLoss: null,
       breakthroughPrice,
+      killZoneTouched: false,
       timestamp: Date.now(), // ✅ add this to track when hedge started
     });
     sendMessage(`🛡️ Hedge trade opened: ${side} at ${entryPrice} (Breakthrough: ${breakthroughPrice})`);
@@ -506,46 +507,54 @@ function setImmediateHedgeBoundary(price) {
 }
 
 
-async function killHedge() {
+ async function killHedge(price) {
   const hedge = state.getHedgeTrade();
-  const currentPrice = getCurrentPrice();
-  if (!hedge || !currentPrice) return;
+  if (!hedge) return;
 
   const now = Date.now();
   const cooldown = (config.hedgeKillCooldown || 60) * 1000;
-
-  if (now - hedge.timestamp < cooldown) return;
-
   const spacing = config.hedgeKillSpacing || 100;
   const entry = hedge.entry;
+  const isBuy = hedge.side === 'Buy';
 
-  let touched = false, back = false, targetPrice;
-
-  if (hedge.side === 'Sell') {
-    targetPrice = toPrecision(entry + spacing);
-    touched = currentPrice >= targetPrice;
-    back = currentPrice <= entry;
-  } else {
-    targetPrice = toPrecision(entry - spacing);
-    touched = currentPrice <= targetPrice;
-    back = currentPrice >= entry;
+  // Store hedge open time if not already set
+  if (!hedge.openTimestamp) {
+    hedge.openTimestamp = now;
+    hedge.killZoneTouched = false;
+    return;
   }
 
-  if (touched && back) {
-    sendMessage(
-      `⚠️ Hedge Kill Triggered\n` +
-      `🛡️ Side: ${hedge.side}\n` +
-      `📌 Entry Price: ${entry}\n` +
-      `🎯 Kill Target Price: ${targetPrice}\n` +
-      `📉 Current Price: ${currentPrice}\n` +
-      `⏱️ Cooldown: ${config.hedgeKillCooldown || 60}s\n` +
-      `✅ Kill condition met (touched target & returned to entry)`
-    );
+  const timeSinceOpen = now - hedge.openTimestamp;
 
-    await closeHedgeTrade(currentPrice);
+  // Track if kill zone was touched
+  if (!hedge.killZoneTouched) {
+    if (
+      (isBuy && price >= entry + spacing) ||
+      (!isBuy && price <= entry - spacing)
+    ) {
+      hedge.killZoneTouched = true;
+      sendMessage(`🎯 Kill zone touched: Hedge ${hedge.side} at ${entry} → Price reached ${price}`);
+    }
+  }
 
-    setImmediateHedgeBoundary(currentPrice);
+  // Check kill condition (price returns to entry after touching kill zone and cooldown passed)
+  if (
+    hedge.killZoneTouched &&
+    timeSinceOpen >= cooldown &&
+    (
+      (isBuy && price <= entry) ||
+      (!isBuy && price >= entry)
+    )
+  ) {
+    await closeHedgeTrade(price, true);
+    sendMessage(`☠️ Hedge killed at ${price} after reversion to entry ${entry}`);
+
+    setImmediateHedgeBoundary(price);
     lastBoundaryUpdateTime = now;
+
+    // Clean up markers
+    hedge.killZoneTouched = false;
+    hedge.openTimestamp = null;
   }
 }
 
