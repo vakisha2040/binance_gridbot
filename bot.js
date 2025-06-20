@@ -132,22 +132,22 @@ async function monitorPrice() {
 
     if (state.getHedgeTrade()) {
       await handleHedgeTrade(price);
-    //  await killHedge();
+     await killHedge();
     }
-/*
+
     // 🔄 Dynamic trailing hedge boundary update (with throttling)
     const now = Date.now();
     if (
       state.getMainTrade() &&
       !state.getHedgeTrade() &&
       lastHedgeClosePrice &&
-      Math.abs(price - lastHedgeClosePrice) > (config.trailingBoundary || 200) &&
+      Math.abs(price - lastHedgeClosePrice) > (config.trailingBoundary || 100) &&
       now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL
     ) {
       setImmediateHedgeBoundary(price);
       lastBoundaryUpdateTime = now;
     }
-*/
+
     await delay(1000);
   }
 }
@@ -314,7 +314,7 @@ async function openHedgeTrade(side, entryPrice) {
       gridLevels: [],
       stopLoss: null,
       breakthroughPrice,
-      openedAt: Date.now(),
+      timestamp: Date.now(), // ✅ add this to track when hedge started
     });
     sendMessage(`🛡️ Hedge trade opened: ${side} at ${entryPrice} (Breakthrough: ${breakthroughPrice})`);
   } catch (e) {
@@ -506,6 +506,48 @@ function setImmediateHedgeBoundary(price) {
 }
 
 
+async function killHedge() {
+  const hedge = state.getHedgeTrade();
+  const currentPrice = getCurrentPrice();
+  if (!hedge || !currentPrice) return;
+
+  const now = Date.now();
+  const cooldown = (config.hedgeKillCooldown || 60) * 1000;
+
+  if (now - hedge.timestamp < cooldown) return;
+
+  const spacing = config.hedgeKillSpacing || 100;
+  const entry = hedge.entry;
+
+  let touched = false, back = false, targetPrice;
+
+  if (hedge.side === 'Sell') {
+    targetPrice = toPrecision(entry + spacing);
+    touched = currentPrice >= targetPrice;
+    back = currentPrice <= entry;
+  } else {
+    targetPrice = toPrecision(entry - spacing);
+    touched = currentPrice <= targetPrice;
+    back = currentPrice >= entry;
+  }
+
+  if (touched && back) {
+    sendMessage(
+      `⚠️ Hedge Kill Triggered\n` +
+      `🛡️ Side: ${hedge.side}\n` +
+      `📌 Entry Price: ${entry}\n` +
+      `🎯 Kill Target Price: ${targetPrice}\n` +
+      `📉 Current Price: ${currentPrice}\n` +
+      `⏱️ Cooldown: ${config.hedgeKillCooldown || 60}s\n` +
+      `✅ Kill condition met (touched target & returned to entry)`
+    );
+
+    await closeHedgeTrade(currentPrice);
+
+    setImmediateHedgeBoundary(currentPrice);
+    lastBoundaryUpdateTime = now;
+  }
+}
 
 
 function delay(ms) {
