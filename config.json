@@ -16,5 +16,6 @@
   "cooldownTime": 60,
   "hedgeKillCooldown": 60,
   "hedgeKillSpacing": 50,
+  "hedgeKillResetMultiplier": 1.5,
   "testnet": false
 }
