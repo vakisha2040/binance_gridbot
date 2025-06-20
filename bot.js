@@ -115,7 +115,7 @@ async function monitorPrice() {
       await delay(1000);
       continue;
     }
-
+// of no main or hedge check for boundarycross
     if (!state.getMainTrade() && !state.getHedgeTrade()) {
       if (price >= boundaries.top) {
         await openMainTrade('Buy', price);
@@ -125,16 +125,16 @@ async function monitorPrice() {
       await delay(1000);
       continue;
     }
-
+//update maintrade logic
     if (state.getMainTrade()) {
       await handleMainTrade(price);
     }
 
     if (state.getHedgeTrade()) {
       await handleHedgeTrade(price);
-      await killHedge();
+    //  await killHedge();
     }
-
+/*
     // 🔄 Dynamic trailing hedge boundary update (with throttling)
     const now = Date.now();
     if (
@@ -147,7 +147,7 @@ async function monitorPrice() {
       setImmediateHedgeBoundary(price);
       lastBoundaryUpdateTime = now;
     }
-
+*/
     await delay(1000);
   }
 }
@@ -464,7 +464,7 @@ function setImmediateHedgeBoundary(price) {
   if (!mainTrade) return;
 
   const trailingBoundary = config.trailingBoundary || 200;
-  const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 300;
+  const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 200;
   const lastClose = lastHedgeClosePrice || price;
 
   const newBoundary = calculateTrailingHedgeOpenPrice(
