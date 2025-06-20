@@ -16,7 +16,6 @@
   "gridStopLossPercent": 0.75,
   "cooldownTime": 60,
   "hedgeKillCooldown": 100,
-  "hedgeKillSpacing": 100,
-  "hedgeKillCooldownSeconds": 120,
+  "hedgeKillSpacing": 70,
   "testnet": false
 }
