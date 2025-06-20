@@ -34,7 +34,7 @@ let lastHedgeClosePrice = null;
 // for new hedge boundary update
 let lastBoundaryUpdateTime = 0;
 const BOUNDARY_UPDATE_INTERVAL = 30 * 1000; // 30 seconds
-
+const HBP = config.hedgeBreakthroughPrice; 
 
 // This start supports persisted
 // state to state.json
@@ -380,15 +380,16 @@ async function killHedge() {
   if (!currentPrice) return;
 
   const isBuy = hedge.side === 'Buy';
-  const entry = hedge.entry;
+  const entryBuy = hedge.entry + HBP;
+  const entrySell = hedge.entry - HBP;
   const spacing = config.hedgeKillSpacing || 100;
   const cooldown = (config.hedgeKillCooldown || 60) * 1000;
   const resetMultiplier = config.hedgeKillResetMultiplier || 1.5;
 
   // 1️⃣ Trigger kill condition if price moves away
   if (!hedge.killTriggered && (
-      (isBuy && currentPrice >= entry + spacing) ||
-      (!isBuy && currentPrice <= entry - spacing)
+      (isBuy && currentPrice >= entryBuy + spacing) ||
+      (!isBuy && currentPrice  <= entrySell - spacing)
   )) {
     hedge.killTriggered = true;
     hedge.killTriggerTime = now;
