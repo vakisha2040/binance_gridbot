@@ -380,16 +380,16 @@ async function killHedge() {
   if (!currentPrice) return;
 
   const isBuy = hedge.side === 'Buy';
-  const entryBuy = hedge.entry + HBP;
-  const entrySell = hedge.entry - HBP;
+  const entry = hedge.entry;
   const spacing = config.hedgeKillSpacing || 100;
   const cooldown = (config.hedgeKillCooldown || 60) * 1000;
   const resetMultiplier = config.hedgeKillResetMultiplier || 1.5;
+  const HBP = config.hedgeBreakthroughPrice || 0; // Compensation for fees
 
   // 1️⃣ Trigger kill condition if price moves away
   if (!hedge.killTriggered && (
-      (isBuy && currentPrice >= entryBuy + spacing) ||
-      (!isBuy && currentPrice  <= entrySell - spacing)
+      (isBuy && currentPrice >= entry + spacing + HBP) ||
+      (!isBuy && currentPrice <= entry - spacing - HBP)
   )) {
     hedge.killTriggered = true;
     hedge.killTriggerTime = now;
@@ -401,8 +401,8 @@ async function killHedge() {
   if (hedge.killTriggered) {
     if (now - (hedge.killTriggerTime || 0) >= cooldown) {
       const shouldKill =
-        (isBuy && currentPrice <= entry) ||
-        (!isBuy && currentPrice >= entry);
+        (isBuy && currentPrice <= entry + HBP) ||
+        (!isBuy && currentPrice >= entry - HBP);
 
       if (shouldKill) {
         sendMessage(`✅ Hedge kill condition met — closing hedge at ${currentPrice}`);
@@ -416,8 +416,8 @@ async function killHedge() {
     // 3️⃣ Optional: RESET if price moves further away (beyond reset spacing)
     const resetSpacing = spacing * resetMultiplier;
     if (
-      (isBuy && currentPrice >= entry + resetSpacing) ||
-      (!isBuy && currentPrice <= entry - resetSpacing)
+      (isBuy && currentPrice >= entry + resetSpacing + HBP) ||
+      (!isBuy && currentPrice <= entry - resetSpacing - HBP)
     ) {
       hedge.killTriggered = false;
       sendMessage(`♻️ Hedge kill trigger reset — price moved too far from entry ${entry}`);
@@ -425,6 +425,7 @@ async function killHedge() {
   }
 }
 
+      
 
 
 async function closeHedgeTrade(price, manual= false) {
