@@ -10,7 +10,7 @@
   "trailingBoundary": 160,
   "maxHedgeTrailDistance": 200,
   "trailTriggerDistance": 120,
-  "gridSpacing": 100,
+  "gridSpacing": 150,
   "zeroLevelSpacing":150,
   "gridLevels": 120,
   "gridStopLossPercent": 0.75,
