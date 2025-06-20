@@ -57,10 +57,16 @@ function getInlineKeyboard() {
           { text: '📄 View Config', callback_data: 'view_config' },
           { text: '✏️ Update Config', callback_data: 'update_config' }
         ],
+        
+        [
+          { text: '🛑 Stop Main Trade', callback_data: 'stop_main_trade' },
+          { text: '🛑 Stop Hedge Trade', callback_data: 'stop_hedge_trade' }
+        ],
          [
          { text: '🟢 🔼  Buy', callback_data: 'buy_main_trade' },
           { text: '🔴🔻 Sell', callback_data: 'sell_main_trade' }
         ]
+        
         
       ]
     }
