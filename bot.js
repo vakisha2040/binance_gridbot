@@ -547,6 +547,7 @@ async function manualSellMainTrade() {
   // Only place a trade if there's no active main or hedge trade
   if (!state.getMainTrade() && !state.getHedgeTrade()) {
     await openMainTrade('Sell', price);
+    await monitorPrice();
   } else {
     sendMessage('⚠️ Trade not placed: Main or Hedge already active.');
   }
@@ -575,6 +576,7 @@ async function manualBuyMainTrade() {
   // Only place a trade if there's no active main or hedge trade
   if (!state.getMainTrade() && !state.getHedgeTrade()) {
     await openMainTrade('Buy', price);
+    await monitorPrice();
   } else {
     sendMessage('⚠️ Trade not placed: Main or Hedge already active.');
   }
