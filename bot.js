@@ -524,14 +524,15 @@ async function manualCloseHedgeTrade() {
   await closeHedgeTrade(price, true);
 }
 
-
 async function manualBuyMainTrade() {
  const price = getCurrentPrice();
     if (!price) {
       await delay(2000);
       continue;
-  await openMainTrade('Buy', price);
-}      
+} 
+if (!state.getMainTrade() && !state.getHedgeTrade()) {
+        await openMainTrade('Buy', price);
+      }
 }
 
 
@@ -539,9 +540,11 @@ async function manualSellMainTrade() {
   const price = getCurrentPrice();
     if (!price) {
       await delay(2000);
-      continue;
-     await openMainTrade('Sell', price);
+      continue;    
 }
+if (!state.getMainTrade() && !state.getHedgeTrade()) {
+      await openMainTrade('Sell', price);
+      }
 }
 
 
