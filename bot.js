@@ -526,6 +526,13 @@ async function manualCloseHedgeTrade() {
 
 
 async function manualSellMainTrade() {
+   fetchPrecision(config);
+  startPolling(1000);
+  await waitForFirstPrice();
+  state.startBot();
+  sendMessage('🤖 Bot started');
+
+  
   let price;
 
   // Retry until we get a valid price
@@ -546,6 +553,14 @@ async function manualSellMainTrade() {
 }
 
 async function manualBuyMainTrade() {
+    fetchPrecision(config);
+  startPolling(1000);
+  await waitForFirstPrice();
+  state.startBot();
+  sendMessage('🤖 Bot started');
+
+  
+  
   let price;
 
   // Retry until we get a valid price
