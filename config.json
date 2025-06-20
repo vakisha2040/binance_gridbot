@@ -12,7 +12,7 @@
   "gridSpacing": 100,
   "zeroLevelSpacing":150,
   "gridLevels": 120,
-  "gridStopLossPercent": 0.75,
+  "gridStopLossPercent": 0.8,
   "cooldownTime": 60,
   "hedgeKillCooldown": 60,
   "hedgeKillSpacing": 50,
