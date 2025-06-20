@@ -6,7 +6,7 @@
   "leverage": 70,
   "orderSize": 0.002,
   "startPrice": null,
-  "tradeEntrySpacing": 50,
+  "tradeEntrySpacing": 100,
   "trailingBoundary": 120,
   "maxHedgeTrailDistance": 140, 
   "gridSpacing": 140,
