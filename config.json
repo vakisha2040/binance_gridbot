@@ -16,7 +16,7 @@
   "cooldownTime": 60,
   "hedgeKillCooldown": 60,
   "hedgeKillSpacing": 70,
-  "hedgeBreakthroughPrice": 51,
+  "hedgeBreakthroughPrice": 55,
   "hedgeKillResetMultiplier": 1.4,
   "testnet": false
 }
