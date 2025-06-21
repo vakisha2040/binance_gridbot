@@ -23,7 +23,9 @@ const { clearBoundary, loadBoundary, saveBoundary } = require('./persistence');
 let sendMessage = () => {};
 function setSendMessage(fn) {
   sendMessage = fn;
-  bybit.setSendMessage(sendMessage); // inject after assignment
+  if (typeof bybit.setSendMessage === 'function') {
+    bybit.setSendMessage(sendMessage);
+  }
 }
 
 // -- Load boundary state on startup
@@ -318,7 +320,6 @@ async function openHedgeTrade(side, entryPrice) {
       gridLevels: [],
       stopLoss: null,
       breakthroughPrice,
-      killZoneTouched: false,
       timestamp: Date.now(), // ✅ add this to track when hedge started
     });
     sendMessage(`🛡️ Hedge trade opened: ${side} at ${entryPrice} (Breakthrough: ${breakthroughPrice})`);
@@ -373,6 +374,7 @@ const currLevelPrice = hedgeTrade.entry + direction * getGridSpacing(hedgeTrade.
 
 //close hedge after 60 secs if price move against it
 
+
 async function killHedge() {
   const hedge = state.getHedgeTrade();
   if (!hedge) return;
@@ -386,70 +388,64 @@ async function killHedge() {
   const spacing = config.hedgeKillSpacing || 100;
   const cooldown = (config.hedgeKillCooldown || 60) * 1000;
   const resetMultiplier = config.hedgeKillResetMultiplier || 1.5;
-  const HBP = config.hedgeBreakthroughPrice || 0; // Compensation for fees
+  const returnTrigger = spacing + HBP;
+  const killTriggerPrice = isBuy ? entry + spacing : entry - spacing;
+  const returnTargetPrice = isBuy ? entry + returnTrigger : entry - returnTrigger;
 
-  // 1️⃣ Trigger kill condition if price moves away
   if (!hedge.killTriggered && (
-      (isBuy && currentPrice >= entry + spacing ) ||
-      (!isBuy && currentPrice <= entry - spacing )
+      (isBuy && currentPrice >= killTriggerPrice) ||
+      (!isBuy && currentPrice <= killTriggerPrice)
   )) {
     hedge.killTriggered = true;
     hedge.killTriggerTime = now;
-    //sendMessage(`💣 Hedge kill trigger armed for ${hedge.side} at ${entry} — waiting for return`);
+  //  sendMessage(`💣 Hedge kill trigger armed for ${hedge.side} at ${entry} — waiting for return to ${returnTargetPrice}`);
     return;
   }
 
-  // 2️⃣ If kill is triggered, check if cooldown has passed and price returned
   if (hedge.killTriggered) {
     if (now - (hedge.killTriggerTime || 0) >= cooldown) {
       const shouldKill =
-        (isBuy && currentPrice <= entry + HBP) ||
-        (!isBuy && currentPrice >= entry - HBP);
+        (isBuy && currentPrice <= returnTargetPrice) ||
+        (!isBuy && currentPrice >= returnTargetPrice);
 
       if (shouldKill) {
         sendMessage(`✅ Hedge kill condition met — closing hedge at ${currentPrice}`);
         await closeHedgeTrade(currentPrice);
-        setImmediateHedgeBoundary(currentPrice);
         lastBoundaryUpdateTime = now;
         return;
       }
     }
 
-    // 3️⃣ Optional: RESET if price moves further away (beyond reset spacing)
     const resetSpacing = spacing * resetMultiplier;
     if (
       (isBuy && currentPrice >= entry + resetSpacing + HBP) ||
       (!isBuy && currentPrice <= entry - resetSpacing - HBP)
     ) {
       hedge.killTriggered = false;
-    //  sendMessage(`♻️ Hedge kill trigger reset — price moved too far from entry ${entry}`);
+      hedge.killTriggerTime = null;
+   //   sendMessage(`♻️ Hedge kill trigger reset — price moved too far from entry (${entry})`);
     }
   }
 }
 
 
-
-
-
-async function closeHedgeTrade(price, manual= false) {
+async function closeHedgeTrade(price, manual = false) {
   try {
     const hedgeTrade = state.getHedgeTrade();
-    if (!hedge) {
-  sendMessage(`⚠️ No hedge trade to close.`);
-  return;
-}
+    if (!hedgeTrade) {
+      sendMessage(`⚠️ No hedge trade to close.`);
+      return;
+    }
     await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize);
     sendMessage(`❌ Hedge trade closed at ${price}${manual ? " (manual or kill)" : ""}`);
     lastHedgeClosePrice = price;
-  
     state.clearHedgeTrade();
-    // Immediately reset the boundary for the next hedge (no cooldown)
     setImmediateHedgeBoundary(price);
-
   } catch (e) {
     sendMessage(`❌ Failed to close hedge trade: ${e.message}`);
   }
 }
+
 
 // New: Calculate trailing hedge open price and set boundaries accordingly
 
