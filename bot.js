@@ -115,15 +115,14 @@ async function monitorPrice() {
       continue;     
     }
 if (!state.getMainTrade() && !state.getHedgeTrade()) {
-  if (price >= boundaries.top) {
-    await openMainTrade('Buy', price);
-  } else if (price <= boundaries.bottom) {
-    await openMainTrade('Sell', price);
+  if (boundaries.bottom && price <= boundaries.bottom) {
+    await openHedgeTrade('Buy', price);
+  } else if (boundaries.top && price >= boundaries.top) {
+    await openHedgeTrade('Sell', price);
   }
   await delay(1000);
   continue;
 }
-
 if (state.getMainTrade()) {
   await handleMainTrade(price);
 }
@@ -460,24 +459,29 @@ function calculateTrailingHedgeOpenPrice(
 }
 
 
-
 //timing boundary calculation with spacing
 
 function setImmediateHedgeBoundary(price, force = false) {
-  const now = Date.now(); const throttle = config.hedgeBoundaryUpdateInterval || 30000;
+  const now = Date.now();
+  const throttle = config.hedgeBoundaryUpdateInterval || 30000;
 
-if (!force && now - lastBoundaryUpdateTime < throttle) return;
+if (!force && now - lastBoundaryUpdateTime < throttle)
+  return;
 lastBoundaryUpdateTime = now;
 
-const mainTrade = state.getMainTrade(); if (!mainTrade) return;
+const mainTrade = state.getMainTrade();
+  if (!mainTrade) 
+    return;
 
-const trailingBoundary = config.trailingBoundary || 200; 
-const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 200; 
+const trailingBoundary = config.trailingBoundary || 100; 
+const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 150; 
 const lastClose = lastHedgeClosePrice || price;
 
-const newBoundary = calculateTrailingHedgeOpenPrice( lastClose,
+const newBoundary = calculateTrailingHedgeOpenPrice( 
+  lastClose,
 price, 
-config.tradeEntrySpacing, trailingBoundary, 
+config.tradeEntrySpacing, 
+  trailingBoundary, 
 maxHedgeTrailDistance, 
 mainTrade.side 
 );
@@ -486,7 +490,8 @@ const distance = Math.abs(price - lastClose);
 
 if (mainTrade.side === 'Buy') { 
   if (!boundaries.bottom || newBoundary > boundaries.bottom) { 
-  boundaries.bottom = newBoundary; boundaries.top = null;
+  boundaries.bottom = newBoundary; 
+    boundaries.top = null;
 persistBoundaries();
 sendMessage(
         `🟦 New bottom hedge boundary set\n` +
