@@ -23,9 +23,7 @@ const { clearBoundary, loadBoundary, saveBoundary } = require('./persistence');
 let sendMessage = () => {};
 function setSendMessage(fn) {
   sendMessage = fn;
-  if (typeof bybit.setSendMessage === 'function') {
-    bybit.setSendMessage(sendMessage);
-  }
+  bybit.setSendMessage(sendMessage); // inject after assignment
 }
 
 // -- Load boundary state on startup
