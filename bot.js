@@ -300,6 +300,8 @@ async function openHedgeTrade(side, entryPrice) {
       stopLoss: null,
       breakthroughPrice,
       timestamp: Date.now(),
+      killTriggered: false,          // Reset for new trade
+      armedNotificationSent: false,   // Reset notification state
     });
 
     sendMessage(`🛡️ Hedge trade opened: ${side} at ${entryPrice} (Breakthrough: ${breakthroughPrice})`);
@@ -352,61 +354,66 @@ const currLevelPrice = hedgeTrade.entry + direction * getGridSpacing(hedgeTrade.
   }
 }
 
-//close hedge after 60 secs if price move against it
-
 
 async function killHedge() {
   const hedge = state.getHedgeTrade();
   if (!hedge) return;
 
-  const now = Date.now();
   const currentPrice = getCurrentPrice();
   if (!currentPrice) return;
 
   const isBuy = hedge.side === 'Buy';
   const entry = hedge.entry;
-  const spacing = config.hedgeKillSpacing || 100;
-  const cooldown = (config.hedgeKillCooldown || 60) * 1000;
-  const resetMultiplier = config.hedgeKillResetMultiplier || 1.5;
-  const returnTrigger = spacing + HBP;
-  const killTriggerPrice = isBuy ? entry + spacing : entry - spacing;
-  const returnTargetPrice = isBuy ? entry + returnTrigger : entry - returnTrigger;
+  const HBP = config.hedgeBreakthroughPrice || 100;
+  const killSpacing = config.hedgeKillSpacing || 20;
 
-  if (!hedge.killTriggered && (
-      (isBuy && currentPrice >= killTriggerPrice) ||
-      (!isBuy && currentPrice <= killTriggerPrice)
-  )) {
-    hedge.killTriggered = true;
-    hedge.killTriggerTime = now;
-  //  sendMessage(`💣 Hedge kill trigger armed for ${hedge.side} at ${entry} — waiting for return to ${returnTargetPrice}`);
-    return;
-  }
+  const feeAdjustedEntry = isBuy ? entry + HBP : entry - HBP;
+  const killTriggerPrice = isBuy 
+    ? feeAdjustedEntry + killSpacing 
+    : feeAdjustedEntry - killSpacing;
 
-  if (hedge.killTriggered) {
-    if (now - (hedge.killTriggerTime || 0) >= cooldown) {
-      const shouldKill =
-        (isBuy && currentPrice <= returnTargetPrice) ||
-        (!isBuy && currentPrice >= returnTargetPrice);
-
-      if (shouldKill) {
-        sendMessage(`✅ Hedge kill condition met — closing hedge at ${currentPrice}`);
-        await closeHedgeTrade(currentPrice);
-        lastBoundaryUpdateTime = now;
-        return;
+  // --- Arming Check ---
+  if (!hedge.killTriggered) {
+    const shouldArm = (isBuy && currentPrice >= killTriggerPrice) || 
+                     (!isBuy && currentPrice <= killTriggerPrice);
+    
+    if (shouldArm) {
+      hedge.killTriggered = true;
+      
+      // Only send notification if not already sent (for this trade)
+      if (!hedge.armedNotificationSent) {
+        sendMessage(
+          `🔒 PERMANENT Kill Trigger ARMED\n` +
+          `▫️ Type: ${hedge.side} Hedge\n` +
+          `▫️ Entry: ${entry} | Fees: ${HBP}\n` +
+          `▫️ Trigger Level: ${killTriggerPrice}\n` +
+          `▫️ Kill Zone: ${feeAdjustedEntry}\n` +
+          `⚠️ Will execute when price returns to ${feeAdjustedEntry}`
+        );
+        hedge.armedNotificationSent = true;
       }
     }
+  }
 
-    const resetSpacing = spacing * resetMultiplier;
-    if (
-      (isBuy && currentPrice >= entry + resetSpacing + HBP) ||
-      (!isBuy && currentPrice <= entry - resetSpacing - HBP)
-    ) {
-      hedge.killTriggered = false;
-      hedge.killTriggerTime = null;
-   //   sendMessage(`♻️ Hedge kill trigger reset — price moved too far from entry (${entry})`);
+  // --- Kill Execution ---
+  if (hedge.killTriggered) {
+    const shouldKill = (isBuy && currentPrice <= feeAdjustedEntry) ||
+                       (!isBuy && currentPrice >= feeAdjustedEntry);
+    
+    if (shouldKill) {
+      sendMessage(
+        `💀 HEDGE KILL EXECUTED\n` +
+        `▫️ Type: ${hedge.side}\n` +
+        `▫️ Entry: ${entry}\n` +
+        `▫️ Exit: ${currentPrice}\n` +
+        `▫️ Fees Recovered: ${HBP}\n` +
+        `▫️ Net PnL: ${isBuy ? (currentPrice - entry - HBP) : (entry - currentPrice - HBP)}`
+      );
+      await closeHedgeTrade(currentPrice);
     }
   }
 }
+
 
 
 async function closeHedgeTrade(price, manual = false) { 
