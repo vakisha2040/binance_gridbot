@@ -39,7 +39,7 @@ let preKillStartTime = null; // used before killTrigger is armed
 let lastKillResetTime = 0; // Global
 // This start supports persisted
 // state to state.json
-
+let hedgeOpeningInProgress = false;
 function getGridSpacing(level) {
   if (level === 0) return config.zeroLevelSpacing;
   return config.gridSpacing; // fallback for compatibility
@@ -113,7 +113,7 @@ async function monitorPrice() {
   while (state.isRunning()) {
     const price = getCurrentPrice();
     if (!price) {
-      await delay(1000);
+      await delay(2000);
       continue;
     }
 // of no main or hedge check for boundarycross
@@ -149,7 +149,7 @@ async function monitorPrice() {
       lastBoundaryUpdateTime = now;
     }
 
-    await delay(1000);
+    await delay(2000);
   }
 }
 
@@ -231,6 +231,7 @@ const currLevelPrice = mainTrade.entry + direction * getGridSpacing(mainTrade.le
   // --- HEDGE LOGIC ---
   // For Buy main trade, open hedge if price drops to bottom boundary.
   // For Sell main trade, open hedge if price rises to top boundary.
+  /*
   if (
     !state.getHedgeTrade() &&
     mainTrade.level === 0 &&
@@ -241,6 +242,21 @@ const currLevelPrice = mainTrade.entry + direction * getGridSpacing(mainTrade.le
   ) {
     await openHedgeTrade(mainTrade.side === 'Buy' ? 'Sell' : 'Buy', price);
   }
+  */
+  //hedge trade opening twice
+  if (
+  !state.getHedgeTrade() &&
+  !hedgeOpeningInProgress &&
+  mainTrade.level === 0 &&
+  (
+    (mainTrade.side === 'Buy' && price <= boundaries.bottom) ||
+    (mainTrade.side === 'Sell' && price >= boundaries.top)
+  )
+) {
+  hedgeOpeningInProgress = true;
+  await openHedgeTrade(mainTrade.side === 'Buy' ? 'Sell' : 'Buy', price);
+  hedgeOpeningInProgress = false;
+}
 }
 
 async function closeMainTrade(price, manual = false) {
@@ -299,7 +315,7 @@ function promoteHedgeToMain() {
   initializeHedgePromotionBoundary();
 } 
   
-
+/*
 async function openHedgeTrade(side, entryPrice) {
   try {
     // Calculate breakthrough price
@@ -320,6 +336,41 @@ async function openHedgeTrade(side, entryPrice) {
       breakthroughPrice,
       timestamp: Date.now(), // ✅ add this to track when hedge started
     });
+    sendMessage(`🛡️ Hedge trade opened: ${side} at ${entryPrice} (Breakthrough: ${breakthroughPrice})`);
+  } catch (e) {
+    sendMessage(`❌ Failed to open hedge trade: ${e.message}`);
+  }
+}
+*/
+
+//for hedge trade opening twice
+async function openHedgeTrade(side, entryPrice) {
+  if (state.getHedgeTrade()) {
+    sendMessage(`⚠️ Attempt to open duplicate hedge ignored.`);
+    return;
+  }
+
+  try {
+    let breakthroughPrice = null;
+    if (side === 'Buy') {
+      breakthroughPrice = toPrecision(entryPrice + 0.5 * config.zeroLevelSpacing);
+    } else {
+      breakthroughPrice = toPrecision(entryPrice - 0.5 * config.zeroLevelSpacing);
+    }
+
+    await bybit.openHedgeTrade(side, config.orderSize);
+
+    state.setHedgeTrade({
+      side,
+      entry: entryPrice,
+      level: 0,
+      hedge: true,
+      gridLevels: [],
+      stopLoss: null,
+      breakthroughPrice,
+      timestamp: Date.now(),
+    });
+
     sendMessage(`🛡️ Hedge trade opened: ${side} at ${entryPrice} (Breakthrough: ${breakthroughPrice})`);
   } catch (e) {
     sendMessage(`❌ Failed to open hedge trade: ${e.message}`);
