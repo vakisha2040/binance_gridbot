@@ -545,7 +545,7 @@ function calculateTrailingHedgeOpenPrice(
   return toPrecision(newOpenPrice);
 }
 
-
+/*
 function setImmediateHedgeBoundary(price) {
   const mainTrade = state.getMainTrade();
   if (!mainTrade) return;
@@ -598,7 +598,73 @@ function setImmediateHedgeBoundary(price) {
   persistBoundaries();
 }
 
- 
+*/
+
+//timing boundary calculation with spacing
+function setImmediateHedgeBoundary(price) {
+  const now = Date.now();
+  const minMove = config.minHedgeBoundaryMove || 20;
+  const throttle = config.hedgeBoundaryUpdateInterval || 30000;
+
+  if (now - lastBoundaryUpdateTime < throttle) return; // throttle updates
+  lastBoundaryUpdateTime = now;
+
+  const mainTrade = state.getMainTrade();
+  if (!mainTrade) return;
+
+  const trailingBoundary = config.trailingBoundary || 200;
+  const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 200;
+  const lastClose = lastHedgeClosePrice || price;
+
+  const newBoundary = calculateTrailingHedgeOpenPrice(
+    lastClose,
+    price,
+    config.tradeEntrySpacing,
+    trailingBoundary,
+    maxHedgeTrailDistance,
+    mainTrade.side
+  );
+
+  const distance = Math.abs(price - lastClose);
+  const moveEnough = (prev, next) => Math.abs(prev - next) >= minMove;
+
+  if (mainTrade.side === 'Buy') {
+    if (!boundaries.bottom || (newBoundary > boundaries.bottom && moveEnough(boundaries.bottom, newBoundary))) {
+      boundaries.bottom = newBoundary;
+      boundaries.top = null;
+      sendMessage(
+        `🟦 New bottom hedge boundary set\n` +
+        `🔹 Main trade side: Buy\n` +
+        `📉 Last hedge close: ${lastClose}\n` +
+        `📈 Current price: ${price}\n` +
+        `📏 Distance moved: ${toPrecision(distance)}\n` +
+        `🎯 New bottom boundary: ${boundaries.bottom}`
+      );
+      persistBoundaries();
+    }
+  } else if (mainTrade.side === 'Sell') {
+    if (!boundaries.top || (newBoundary < boundaries.top && moveEnough(boundaries.top, newBoundary))) {
+      boundaries.top = newBoundary;
+      boundaries.bottom = null;
+      sendMessage(
+        `🟥 New top hedge boundary set\n` +
+        `🔸 Main trade side: Sell\n` +
+        `📉 Last hedge close: ${lastClose}\n` +
+        `📈 Current price: ${price}\n` +
+        `📏 Distance moved: ${toPrecision(distance)}\n` +
+        `🎯 New top boundary: ${boundaries.top}`
+      );
+      persistBoundaries();
+    }
+  }
+}
+
+
+
+
+
+
+
    function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
