@@ -509,7 +509,7 @@ function calculateTrailingHedgeOpenPrice(
   maxHedgeTrailDistance,
   mainTradeSide
 ) {
-  const distance = Math.abs(currentPrice - lastClose);
+  const distance = Math.round(Math.abs(currentPrice - lastClose) * 100) / 100;
   let newOpenPrice;
 
   if (distance > trailingBoundary) {
@@ -563,9 +563,10 @@ function setImmediateHedgeBoundary(price) {
     mainTrade.side
   );
 
-  const distance = Math.abs(price - lastClose);
+  
+  const distance = Math.round(Math.abs(currentPrice - lastClose) * 100) / 100;
   // ✅ Prevent spam: skip update if boundary hasn’t changed significantly
-  if (lastSetBoundary !== null && Math.abs(newBoundary - lastSetBoundary) < 1) {
+  if (lastSetBoundary !== null && Math.abs(newBoundary - lastSetBoundary) < 10) {
     return; // Skip update
   }
   lastSetBoundary = newBoundary;
