@@ -549,7 +549,8 @@ async function manualCloseHedgeTrade() {
 
 
 async function manualSellMainTrade() {
-   fetchPrecision(config);
+if (state.isRunning()) return; // Prevent duplicate starts
+  fetchPrecision(config);
   startPolling(1000);
   await waitForFirstPrice();
   state.startBot();
@@ -577,7 +578,8 @@ async function manualSellMainTrade() {
 }
 
 async function manualBuyMainTrade() {
-    fetchPrecision(config);
+   if (state.isRunning()) return; // Prevent duplicate starts
+  fetchPrecision(config);
   startPolling(1000);
   await waitForFirstPrice();
   state.startBot();
