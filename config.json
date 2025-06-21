@@ -19,7 +19,7 @@
   "hedgeReentryCooldown": 30000,
 "hedgeBoundaryUpdateInterval": 30000,
   "hedgeKillCooldown": 20,
-  "hedgeKillSpacing": 130,
+  "hedgeKillSpacing": 20,
   "hedgeBreakthroughPrice": 105,
   "hedgeKillResetMultiplier": 1.4,
   "testnet": false
