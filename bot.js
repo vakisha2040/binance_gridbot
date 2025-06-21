@@ -34,12 +34,15 @@ let lastHedgeClosePrice = null;
 // for new hedge boundary update
 let lastBoundaryUpdateTime = 0;
 const BOUNDARY_UPDATE_INTERVAL = 30 * 1000; // 30 seconds
+let lastSetBoundary = null;
 const HBP = config.hedgeBreakthroughPrice; 
 let preKillStartTime = null; // used before killTrigger is armed
 let lastKillResetTime = 0; // Global
 // This start supports persisted
 // state to state.json
+
 let hedgeOpeningInProgress = false;
+
 function getGridSpacing(level) {
   if (level === 0) return config.zeroLevelSpacing;
   return config.gridSpacing; // fallback for compatibility
@@ -561,7 +564,12 @@ function setImmediateHedgeBoundary(price) {
   );
 
   const distance = Math.abs(price - lastClose);
-
+  // ✅ Prevent spam: skip update if boundary hasn’t changed significantly
+  if (lastSetBoundary !== null && Math.abs(newBoundary - lastSetBoundary) < 1) {
+    return; // Skip update
+  }
+  lastSetBoundary = newBoundary;
+  
   if (mainTrade.side === 'Buy') {
     boundaries.bottom = newBoundary;
     boundaries.top = null;
