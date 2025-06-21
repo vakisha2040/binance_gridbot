@@ -425,35 +425,45 @@ sendMessage(`❌ Failed to close hedge trade: ${e.message}`);
 
 
 // New: Calculate trailing hedge open price and set boundaries accordingly
-function calculateTrailingHedgeOpenPrice(lastClose, currentPrice, gridSpacing, trailingBoundary, maxHedgeTrailDistance, mainTradeSide) {
+function calculateTrailingHedgeOpenPrice(
+  lastClose,
+  currentPrice,
+  gridSpacing,
+  trailingBoundary,
+  maxHedgeTrailDistance,
+  mainTradeSide
+) {
   const distance = Math.abs(currentPrice - lastClose);
-
   let newOpenPrice;
+
   if (distance > trailingBoundary) {
     newOpenPrice = lastClose + 0.5 * (currentPrice - lastClose);
-    // Clamp within maxHedgeTrailDistance if configured
+
     if (maxHedgeTrailDistance && Math.abs(newOpenPrice - lastClose) > maxHedgeTrailDistance) {
       if (currentPrice > lastClose)
         newOpenPrice = lastClose + maxHedgeTrailDistance;
       else
         newOpenPrice = lastClose - maxHedgeTrailDistance;
     }
+
     sendMessage(
       `⚡️ Hedge boundary adjusted for sharp move:\n` +
       `Last hedge close: ${lastClose}, Current price: ${currentPrice}, Distance: ${distance}, New hedge open price: ${newOpenPrice}`
     );
+
   } else {
     newOpenPrice = mainTradeSide === 'Buy'
-      ? lastClose - zeroLeveSpacing
-      : lastClose + zeroLevelSpacing;
+      ? lastClose - config.newBoundarySpacing
+      : lastClose + config.newBoundarySpacing;
+
     sendMessage(
       `🔲 Hedge boundary (default grid): Last hedge close: ${lastClose}, New hedge open price: ${newOpenPrice}`
     );
   }
+
   return toPrecision(newOpenPrice);
 }
-
-
+  
 //timing boundary calculation with spacing
 function setImmediateHedgeBoundary(price) {
   const now = Date.now();
