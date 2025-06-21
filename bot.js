@@ -186,7 +186,7 @@ if (
 (mainTrade.side === 'Buy' && price >= nextLevelPrice) || (mainTrade.side === 'Sell' && price <= nextLevelPrice) 
 ) { 
 const previousLevel = currentLevel; mainTrade.level += 1;
-sendMessage(📊 Main trade reached level ${mainTrade.level} at ${price});
+sendMessage(`📊 Main trade reached level ${mainTrade.level} at ${price}`);
 
 if (mainTrade.level >= 1) {
   const prevLevelPrice = mainTrade.entry + direction * getGridSpacing(previousLevel) * previousLevel;
