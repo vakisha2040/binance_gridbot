@@ -163,6 +163,7 @@ async function openMainTrade(side, entryPrice) {
       stopLoss: null,
       breakthroughPrice: null, // will be set if promoted from hedge
     });
+    boundaryLocked = true;
     sendMessage(`📈 Main trade opened: ${side} at ${entryPrice}`);
     await initializeBoundaries();
   } catch (e) {
@@ -261,6 +262,7 @@ function promoteHedgeToMain() {
   hedge.openTimestamp = null;         // 🔄 Reset kill tracking timer
   state.setMainTrade(hedge);
   state.clearHedgeTrade();
+  boundaryLocked = true;
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
   initializeHedgePromotionBoundary();
 } 
@@ -407,7 +409,10 @@ return;
 await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize); 
 sendMessage(`❌ Hedge trade closed at ${price}${manual ? " (manual or kill)" : ""}`); 
 lastHedgeClosePrice = price; 
-state.clearHedgeTrade(); hedgeCooldownUntil = Date.now() + (config.hedgeReentryCooldown || 30000); setImmediateHedgeBoundary(price, true); 
+state.clearHedgeTrade(); 
+  boundaryLocked = false;
+  hedgeCooldownUntil = Date.now() + (config.hedgeReentryCooldown || 30000);
+  setImmediateHedgeBoundary(price, true); 
 } catch (e) { 
 sendMessage(`❌ Failed to close hedge trade: ${e.message}`); 
 } 
