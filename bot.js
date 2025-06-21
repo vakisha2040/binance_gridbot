@@ -29,7 +29,8 @@ let { trailingBoundary, boundaries } = loadBoundary();
 if (!boundaries) boundaries = { top: null, bottom: null };
 let lastHedgeClosePrice = null;
 let hedgeCooldownUntil = 0; // 🚫 Prevent immediate re-entry 
-
+let sentReadyTrigger= false;
+let sentKillTrigger= false;
 // for new hedge boundary update
 let lastBoundaryUpdateTime = 0;
 const BOUNDARY_UPDATE_INTERVAL = 30 * 1000; // 30 seconds
