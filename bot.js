@@ -108,44 +108,51 @@ async function initializeBoundaries() {
 
 
 async function monitorPrice() {
-  while (state.isRunning()) { 
+  while (state.isRunning()) {
     const price = getCurrentPrice();
-    if (!price) { 
+    if (!price) {
       await delay(1000);
-      continue;     
+      continue;
     }
-if (!state.getMainTrade() && !state.getHedgeTrade()) {
-  if (boundaries.bottom && price <= boundaries.bottom) {
-    await openHedgeTrade('Buy', price);
-  } else if (boundaries.top && price >= boundaries.top) {
-    await openHedgeTrade('Sell', price);
+
+    // 🟢 STRICT hedge re-entry only on boundary cross
+    if (!state.getMainTrade() && !state.getHedgeTrade()) {
+      if (boundaries.bottom && price <= boundaries.bottom) {
+        await openHedgeTrade('Buy', price);
+      } else if (boundaries.top && price >= boundaries.top) {
+        await openHedgeTrade('Sell', price);
+      }
+      await delay(1000);
+      continue;
+    }
+
+    // 🔁 Main Trade Logic
+    if (state.getMainTrade()) {
+      await handleMainTrade(price);
+    }
+
+    // 🛡️ Hedge Trade Logic
+    if (state.getHedgeTrade()) {
+      await handleHedgeTrade(price);
+      await killHedge();
+    }
+
+    // 🧠 Optional trailing hedge update
+    const now = Date.now();
+    if (
+      !boundaryLocked &&
+      state.getMainTrade() &&
+      !state.getHedgeTrade() &&
+      lastHedgeClosePrice &&
+      Math.abs(price - lastHedgeClosePrice) > (config.trailingBoundary || 100) &&
+      now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL
+    ) {
+      setImmediateHedgeBoundary(price);
+      lastBoundaryUpdateTime = now;
+    }
+
+    await delay(1000);
   }
-  await delay(1000);
-  continue;
-}
-if (state.getMainTrade()) {
-  await handleMainTrade(price);
-}
-
-if (state.getHedgeTrade()) {
-  await handleHedgeTrade(price);
-  await killHedge();
-}
-
-const now = Date.now();
-if (
-  !boundaryLocked &&
-  state.getMainTrade() &&
-  !state.getHedgeTrade() &&
-  lastHedgeClosePrice &&
-  Math.abs(price - lastHedgeClosePrice) > (config.trailingBoundary || 100) &&
-  now - lastBoundaryUpdateTime > (config.hedgeBoundaryUpdateInterval || 30000)
-) {
-  setImmediateHedgeBoundary(price, true);
-  lastBoundaryUpdateTime = now;
-}
-await delay(1000);
- }
 }
 
 
@@ -392,29 +399,31 @@ async function killHedge() {
       );
   
       await closeHedgeTrade(currentPrice);
-setImmediateHedgeBoundary(currentPrice);
     }
   }
 }
 
 
 
-async function closeHedgeTrade(price, manual = false) { 
-try { 
-const hedgeTrade = state.getHedgeTrade(); if (!hedgeTrade) { 
-sendMessage(`⚠️ No hedge trade to close.`);
-return; 
-} 
-await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize); 
-sendMessage(`❌ Hedge trade closed at ${price}${manual ? " (manual or kill)" : ""}`); 
-lastHedgeClosePrice = price; 
-state.clearHedgeTrade(); 
-  boundaryLocked = false;
-  hedgeCooldownUntil = Date.now() + (config.hedgeReentryCooldown || 30000);
-  setImmediateHedgeBoundary(price, true); 
-} catch (e) { 
-sendMessage(`❌ Failed to close hedge trade: ${e.message}`); 
-} 
+async function closeHedgeTrade(price, manual = false) {
+  try {
+    const hedgeTrade = state.getHedgeTrade();
+    if (!hedgeTrade) return;
+
+    await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize);
+    sendMessage(`❌ Hedge trade closed at ${price}${manual ? ' (manual)' : ''}`);
+
+    lastHedgeClosePrice = price;
+    state.clearHedgeTrade();
+
+    // 🔐 Lock disabled — new boundary will be set
+    boundaryLocked = false;
+
+    // ✅ DO NOT open new hedge here — just set boundary
+    setImmediateHedgeBoundary(price);
+  } catch (e) {
+    sendMessage(`❌ Failed to close hedge trade: ${e.message}`);
+  }
 }
 
 
