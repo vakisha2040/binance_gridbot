@@ -199,7 +199,8 @@ if (mainTrade.level >= 1) {
 if (mainTrade.level >= 1 && mainTrade.stopLoss !== null) { 
 if (mainTrade.breakthroughPrice !== undefined && mainTrade.breakthroughPrice !== null) { 
 if ((mainTrade.side === 'Buy' && price > mainTrade.breakthroughPrice) || (mainTrade.side === 'Sell' && price < mainTrade.breakthroughPrice)) {
-sendMessage(🚦 Breakthrough price (${mainTrade.breakthroughPrice}) crossed. Stoploss is now active.); mainTrade.breakthroughPrice = null;
+sendMessage(`🚦 Breakthrough price (${mainTrade.breakthroughPrice}) crossed. Stoploss is now active.`); 
+  mainTrade.breakthroughPrice = null;
 } else { 
 return;
 } 
@@ -410,14 +411,15 @@ async function killHedge() {
 async function closeHedgeTrade(price, manual = false) { 
 try { 
 const hedgeTrade = state.getHedgeTrade(); if (!hedgeTrade) { 
-sendMessage(⚠️ No hedge trade to close.); return; 
+sendMessage(`⚠️ No hedge trade to close.`);
+return; 
 } 
 await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize); 
-sendMessage(❌ Hedge trade closed at ${price}${manual ? " (manual or kill)" : ""}); 
+sendMessage(`❌ Hedge trade closed at ${price}${manual ? " (manual or kill)" : ""}`); 
 lastHedgeClosePrice = price; 
 state.clearHedgeTrade(); hedgeCooldownUntil = Date.now() + (config.hedgeReentryCooldown || 30000); // ⏳ Wait before re-entry setImmediateHedgeBoundary(price); 
 } catch (e) { 
-sendMessage(❌ Failed to close hedge trade: ${e.message}); 
+sendMessage(`❌ Failed to close hedge trade: ${e.message}`); 
 } 
 }
 
