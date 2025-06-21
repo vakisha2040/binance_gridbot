@@ -116,7 +116,7 @@ async function monitorPrice() {
   while (state.isRunning()) {
     const price = getCurrentPrice();
     if (!price) {
-      await delay(2000);
+      await delay(1000);
       continue;
     }
 // of no main or hedge check for boundarycross
@@ -152,7 +152,7 @@ async function monitorPrice() {
       lastBoundaryUpdateTime = now;
     }
 
-    await delay(2000);
+    await delay(1000);
   }
 }
 
