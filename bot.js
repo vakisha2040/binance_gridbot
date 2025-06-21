@@ -104,8 +104,8 @@ async function initializeBoundaries() {
     sendMessage('⚠️ Unable to get current price to set boundaries.');
     return;
   }
-  boundaries.top = toPrecision(price + config.tradeEntrySpacing);
-  boundaries.bottom = toPrecision(price - config.tradeEntrySpacing);
+  boundaries.top = toPrecision(price + config.newBoundarySpacing);
+  boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
   persistBoundaries();
   sendMessage(`🔲 Boundaries set: Top ${boundaries.top}, Bottom ${boundaries.bottom}`);
 }
@@ -244,12 +244,12 @@ function initializeHedgePromotionBoundary() {
     return;
   }
   if (mainTrade.side === 'Buy') {
-    boundaries.bottom = toPrecision(price - config.tradeEntrySpacing);
+    boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
     boundaries.top = null;
     persistBoundaries();
     sendMessage(`🔲 (Hedge->Main) Bottom boundary set: ${boundaries.bottom}`);
   } else if (mainTrade.side === 'Sell') {
-    boundaries.top = toPrecision(price + config.tradeEntrySpacing);
+    boundaries.top = toPrecision(price + config.newBoundarySpacing);
     boundaries.bottom = null;
     persistBoundaries();
     sendMessage(`🔲 (Hedge->Main) Top boundary set: ${boundaries.top}`);
@@ -463,7 +463,9 @@ function calculateTrailingHedgeOpenPrice(
 
   return toPrecision(newOpenPrice);
 }
-  
+
+
+
 //timing boundary calculation with spacing
 function setImmediateHedgeBoundary(price) {
   const now = Date.now();
