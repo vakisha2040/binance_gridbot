@@ -104,10 +104,10 @@ async function initializeBoundaries() {
     sendMessage('⚠️ Unable to get current price to set boundaries.');
     return;
   }
-  boundaries.top = toPrecision(price + config.newBoundarySpacing);
-  boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
+  boundaries.top = toPrecision(price + config.tradeEntrySpacing);
+  boundaries.bottom = toPrecision(price - config.tradeEntrySpacing);
   persistBoundaries();
-  sendMessage(`🔲 Boundaries set: Top ${boundaries.top}, Bottom ${boundaries.bottom}`);
+  sendMessage(`🔲 Boundaries set: Top ${boundaries.top}, Bottom ${boundaries.bottom},using tradeEntrySpacing:  ${config.tradeEntrySpacing}`);
 }
 
 
