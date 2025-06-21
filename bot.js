@@ -37,12 +37,9 @@ const BOUNDARY_UPDATE_INTERVAL = 30 * 1000; // 30 seconds
 let lastSetBoundary = null;
 const HBP = config.hedgeBreakthroughPrice; 
 let preKillStartTime = null; // used before killTrigger is armed
-let lastKillResetTime = 0; // Global
-// This start supports persisted
-// state to state.json
-
+let lastKillResetTime = 0; 
 let hedgeOpeningInProgress = false;
-
+let boundaryLocked = false;
 function getGridSpacing(level) {
   if (level === 0) return config.zeroLevelSpacing;
   return config.gridSpacing; // fallback for compatibility
