@@ -54,24 +54,21 @@ async function startBot() {
   await waitForFirstPrice();
   state.startBot();
   sendMessage('🤖 Bot started');
-
   const mainTrade = state.getMainTrade();
   const hedgeTrade = state.getHedgeTrade();
-
   if (mainTrade) {
     sendMessage(`📦 Resuming main trade: ${mainTrade.side} from ${mainTrade.entry} at level ${mainTrade.level}`);
-    if (!lastHedgeClosePrice) lastHedgeClosePrice = mainTrade.entry; // 👈 force baseline for trailing
+  if (!lastHedgeClosePrice) lastHedgeClosePrice = mainTrade.entry; // 👈 force baseline for trailing
     await initializeHedgePromotionBoundary();
   } else {
     await initializeBoundaries();
   }
-
   if (hedgeTrade) {
     sendMessage(`🛡️ Resuming hedge trade: ${hedgeTrade.side} from ${hedgeTrade.entry} at level ${hedgeTrade.level}`);
   }
-
   monitorPrice();
 }
+
 
 // this is used for clearing state
 async function resetBot() {
@@ -118,10 +115,8 @@ async function monitorPrice() {
     const price = getCurrentPrice();
     if (!price) { 
       await delay(1000);
-      continue; 
-      
+      continue;     
     }
-
 if (!state.getMainTrade() && !state.getHedgeTrade()) {
   if (price >= boundaries.top) {
     await openMainTrade('Buy', price);
@@ -153,10 +148,8 @@ if (
   setImmediateHedgeBoundary(price, true);
   lastBoundaryUpdateTime = now;
 }
-
 await delay(1000);
-
-}
+ }
 }
 
 
@@ -191,14 +184,13 @@ if (
 ) { 
 const previousLevel = currentLevel; mainTrade.level += 1;
 sendMessage(`📊 Main trade reached level ${mainTrade.level} at ${price}`);
-
 if (mainTrade.level >= 1) {
   const prevLevelPrice = mainTrade.entry + direction * getGridSpacing(previousLevel) * previousLevel;
   const currLevelPrice = mainTrade.entry + direction * getGridSpacing(mainTrade.level) * mainTrade.level;
 
   mainTrade.stopLoss = toPrecision(prevLevelPrice + config.gridStopLossPercent * (currLevelPrice - prevLevelPrice));
   sendMessage(`🔒 Main trade stop loss updated to ${mainTrade.stopLoss}`);
-}
+  }
 }
 if (mainTrade.level >= 1 && mainTrade.stopLoss !== null) { 
 if (mainTrade.breakthroughPrice !== undefined && mainTrade.breakthroughPrice !== null) { 
@@ -210,11 +202,13 @@ return;
 } 
 } 
 if ( (mainTrade.side === 'Buy' && price <= mainTrade.stopLoss) || (mainTrade.side === 'Sell' && price >= mainTrade.stopLoss) ) { 
-await closeMainTrade(price, false); return; 
-} 
+await closeMainTrade(price, false); 
+  return; 
+  } 
 }
 
-if ( !state.getHedgeTrade() && !hedgeOpeningInProgress && Date.now() > hedgeCooldownUntil && mainTrade.level === 0 && ( (mainTrade.side === 'Buy' && price <= boundaries.bottom) || (mainTrade.side === 'Sell' && price >= boundaries.top) ) ) { hedgeOpeningInProgress = true; 
+if ( !state.getHedgeTrade() && !hedgeOpeningInProgress && Date.now() > hedgeCooldownUntil && mainTrade.level === 0 && ( (mainTrade.side === 'Buy' && price <= boundaries.bottom) || (mainTrade.side === 'Sell' && price >= boundaries.top) ) ) { 
+  hedgeOpeningInProgress = true; 
 await openHedgeTrade(mainTrade.side === 'Buy' ? 'Sell' : 'Buy', price); hedgeOpeningInProgress = false; 
 }
 }
@@ -227,7 +221,6 @@ async function closeMainTrade(price, manual = false) {
     await bybit.closeMainTrade(mainTrade.side, config.orderSize);
     sendMessage(`❌ Main trade closed at ${price}${manual ? " (manual)" : ""}`);
     state.clearMainTrade();
-
     // If a hedge trade is active, promote it to main
     if (state.getHedgeTrade()) {
       promoteHedgeToMain();
@@ -269,7 +262,6 @@ function promoteHedgeToMain() {
   hedge.stopLoss = null;
   hedge.killZoneTouched = false;      // 🔄 Reset kill tracking
   hedge.openTimestamp = null;         // 🔄 Reset kill tracking timer
-
   state.setMainTrade(hedge);
   state.clearHedgeTrade();
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
@@ -291,9 +283,7 @@ async function openHedgeTrade(side, entryPrice) {
     } else {
       breakthroughPrice = toPrecision(entryPrice - 0.5 * config.zeroLevelSpacing);
     }
-
     await bybit.openHedgeTrade(side, config.orderSize);
-
     state.setHedgeTrade({
       side,
       entry: entryPrice,
@@ -332,15 +322,11 @@ async function handleHedgeTrade(price) {
     const previousLevel = currentLevel;
     hedgeTrade.level += 1;
     sendMessage(`📊 Hedge trade reached level ${hedgeTrade.level} at ${price}`);
-
     if (hedgeTrade.level >= 1) {
-      // Trailing stop: midpoint between prev and current grid level
-      
+      // Trailing stop: midpoint between prev and current grid level 
      const prevLevelPrice = hedgeTrade.entry + direction * getGridSpacing(previousLevel) * previousLevel;
 const currLevelPrice = hedgeTrade.entry + direction * getGridSpacing(hedgeTrade.level) * hedgeTrade.level;
-
-      
-      hedgeTrade.stopLoss = toPrecision(prevLevelPrice + config.gridStopLossPercent * (currLevelPrice - prevLevelPrice));
+ hedgeTrade.stopLoss = toPrecision(prevLevelPrice + config.gridStopLossPercent * (currLevelPrice - prevLevelPrice));
       sendMessage(`🔒 Hedge trade stop loss updated to ${hedgeTrade.stopLoss}`);
     }
   }
@@ -361,28 +347,22 @@ const currLevelPrice = hedgeTrade.entry + direction * getGridSpacing(hedgeTrade.
 async function killHedge() {
   const hedge = state.getHedgeTrade();
   if (!hedge) return;
-
   const currentPrice = getCurrentPrice();
   if (!currentPrice) return;
-
   const isBuy = hedge.side === 'Buy';
   const entry = hedge.entry;
   const HBP = config.hedgeBreakthroughPrice || 100;
   const killSpacing = config.hedgeKillSpacing || 20;
-
   const feeAdjustedEntry = isBuy ? entry + HBP : entry - HBP;
   const killTriggerPrice = isBuy 
     ? feeAdjustedEntry + killSpacing 
     : feeAdjustedEntry - killSpacing;
-
   // --- Arming Check ---
   if (!hedge.killTriggered) {
     const shouldArm = (isBuy && currentPrice >= killTriggerPrice) || 
-                     (!isBuy && currentPrice <= killTriggerPrice);
-    
+                     (!isBuy && currentPrice <= killTriggerPrice);   
     if (shouldArm) {
-      hedge.killTriggered = true;
-      
+      hedge.killTriggered = true;   
       // Only send notification if not already sent (for this trade)
       if (!hedge.armedNotificationSent) {
         sendMessage(
