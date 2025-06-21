@@ -14,7 +14,7 @@
   "gridLevels": 120,
   "gridStopLossPercent": 0.8,
   "cooldownTime": 120,
-  "minHedgeBoundaryMove": 40,
+  "minHedgeBoundaryMove": 5,
   "hedgeReentryCooldown": 30000,
 "hedgeBoundaryUpdateInterval": 30000,
   "hedgeKillCooldown": 20,
