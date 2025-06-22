@@ -75,15 +75,15 @@ async function initializeFreshBoundaries() {
     `Current Price: ${price}`
   );
 
-  checkForNewTradeOpportunity(price); // Immediate check
+await checkForNewTradeOpportunity(price); // Immediate check
 }
 
- function checkForNewTradeOpportunity(price) {
+async function checkForNewTradeOpportunity(price) {
  
   if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) 
     return;
 
-  const signal =  analyze();
+  const signal =  await analyze();
  
   if (signal === 'BUY') {
     openMainTrade("Buy", price);
@@ -126,7 +126,7 @@ async function startBot() {
     }
 
 
-const signal =  analyze(); // 'BUY', 'SELL', or 'WAIT'
+const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
 
   if (signal === 'BUY') {
     openMainTrade("Buy", price);
@@ -330,7 +330,7 @@ if (!mainTrade && !hedgeTrade) {
     if (!boundaries.top && !boundaries.bottom) {
       await initializeFreshBoundaries();
     } else {
-      checkForNewTradeOpportunity(price);
+   await  checkForNewTradeOpportunity(price);
     }
   }
 }
