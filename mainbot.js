@@ -42,6 +42,8 @@ let lastKillResetTime = 0;
 let hedgeOpeningInProgress = false;
 let boundaryLocked = false;
 
+const { analyze } = require('./technical');
+
 function getGridSpacing(level) {
   if (level === 0) return config.zeroLevelSpacing;
   return config.gridSpacing;
@@ -55,7 +57,10 @@ async function initializeFreshBoundaries() {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
     return;
   }
-  const spacing = config.tradeEntrySpacing || 100;
+
+  const spacing = config.tradeEntrSpacing || 100;
+
+
   boundaries = {
     top: toPrecision(price + spacing),
     bottom: toPrecision(price - spacing)
@@ -74,13 +79,23 @@ async function initializeFreshBoundaries() {
 }
 
 function checkForNewTradeOpportunity(price) {
-  if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) return;
+ 
+  if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) 
+    return;
 
-  if (price >= boundaries.top) {
+  const signal = await analyze();
+ 
+  if (signal === 'BUY') {
     openMainTrade("Buy", price);
   } 
-  else if (price <= boundaries.bottom) {
+  else if (signal === 'SELL') {
     openMainTrade("Sell", price);
+  }
+  else {
+  
+  const initialSide = config.initialTradeSide || 'Buy';
+    await openMainTrade(initialSide, price);
+
   }
 }
 
@@ -109,10 +124,27 @@ async function startBot() {
       sendMessage("⚠️ Unable to fetch price for main trade on startup.");
       return;
     }
-    
+
+
+const signal = await analyze(); // 'BUY', 'SELL', or 'WAIT'
+
+  if (signal === 'BUY') {
+    openMainTrade("Buy", price);
+    sendMessage(` 🕐 Signal is BUY, Placing Buy order...`);
+  } 
+  else if (signal === 'SELL') {
+    openMainTrade("Sell", price);
+    sendMessage(` 🕐 Signal is SELL, Placing sell order...`);
+  } 
+  else {
+  
     const initialSide = config.initialTradeSide || 'Buy';
     await openMainTrade(initialSide, price);
+
   }
+
+    
+      }
 
   monitorPrice();
 }
