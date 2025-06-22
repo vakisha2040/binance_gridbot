@@ -59,7 +59,20 @@ async function initializeFreshBoundaries() {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
     return;
   }
-  const spacing = config.tradeEntrySpacing || 100;
+  
+  checkForNewTradeOpportunity(price); // Immediate check
+}
+
+
+async function checkForNewTradeOpportunity(price) {
+  if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) return;
+
+  const signal = await analyze(); // 'BUY', 'SELL', or 'WAIT'
+
+  if (signal === 'BUY') {
+    openMainTrade("Buy", price);
+    sendMessage(` 🕐 Signal is BUY, Placing Buy order...`);
+const spacing = config.tradeEntrySpacing || 100;
   boundaries = {
     top: toPrecision(price + spacing),
     bottom: toPrecision(price - spacing)
@@ -74,22 +87,25 @@ async function initializeFreshBoundaries() {
     `Current Price: ${price}`
   );
 
-  checkForNewTradeOpportunity(price); // Immediate check
-}
-
-
-async function checkForNewTradeOpportunity(price) {
-  if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) return;
-
-  const signal = await analyze(); // 'BUY', 'SELL', or 'WAIT'
-
-  if (signal === 'BUY') {
-    openMainTrade("Buy", price);
-    sendMessage(` 🕐 Signal is BUY, Placing Buy order...`);
   } 
   else if (signal === 'SELL') {
     openMainTrade("Sell", price);
     sendMessage(` 🕐 Signal is SELL, Placing sell order...`);
+ const spacing = config.tradeEntrySpacing || 100;
+  boundaries = {
+    top: toPrecision(price + spacing),
+    bottom: toPrecision(price - spacing)
+  };
+  saveBoundary({ trailingBoundary, boundaries });
+  sendMessage(
+    `🎯 New Trade Zones Ready\n` +
+    `┌───────────────┬───────────────┐\n` +
+    `│    BUY ZONE   │   SELL ZONE   │\n` +
+    `│  ≤ ${boundaries.bottom} │  ≥ ${boundaries.top} │\n` +
+    `└───────────────┴───────────────┘\n` +
+    `Current Price: ${price}`
+  );
+
   } 
   else {
   
