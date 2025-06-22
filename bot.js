@@ -123,7 +123,7 @@ async function initializeBoundaries() {
     sendMessage(`⚪ No main trade - boundaries set at ${boundaries.bottom}-${boundaries.top} (current: ${price})`);
   }
 
-  persistBoundaries();
+  saveBoundary({ trailingBoundary, boundaries });
 }
 
 
@@ -260,7 +260,7 @@ async function monitorPrice() {
 
     } catch (e) {
       sendMessage(`‼️ CRITICAL MONITOR ERROR: ${e.message}\n${e.stack}`);
-      await delay(5000); // Prevent tight error loops
+      await delay(3000); // Prevent tight error loops
     }
   }
 }
@@ -369,12 +369,12 @@ function initializeHedgePromotionBoundary() {
   if (mainTrade.side === 'Buy') {
     boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
     boundaries.top = null;
-    persistBoundaries();
+    saveBoundary({ trailingBoundary, boundaries });
     sendMessage(`🔲 (Hedge->Main) Bottom boundary set: ${boundaries.bottom}`);
   } else if (mainTrade.side === 'Sell') {
     boundaries.top = toPrecision(price + config.newBoundarySpacing);
     boundaries.bottom = null;
-    persistBoundaries();
+    saveBoundary({ trailingBoundary, boundaries });
     sendMessage(`🔲 (Hedge->Main) Top boundary set: ${boundaries.top}`);
   }
 }
@@ -550,7 +550,7 @@ async function closeHedgeTrade(price, manual = false) {
       // Clear boundaries immediately
       boundaries.top = null;
       boundaries.bottom = null;
-      persistBoundaries();
+      saveBoundary({ trailingBoundary, boundaries });
       
       // Schedule boundary setup after cooldown
       setTimeout(async () => {
