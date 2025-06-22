@@ -47,43 +47,89 @@ function getGridSpacing(level) {
   return config.gridSpacing;
 }
 
-
 async function initializeFreshBoundaries() {
-  boundaryLocked = false;   
+  boundaryLocked = false;
   const price = getCurrentPrice();
   if (!price) {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
     return;
   }
-  const spacing = config.tradeEntrySpacing || 100;
-  boundaries = {
-    top: toPrecision(price + spacing),
-    bottom: toPrecision(price - spacing)
-  };
-  saveBoundary({ trailingBoundary, boundaries });
-  sendMessage(
-    `🎯 New Trade Zones Ready\n` +
-    `┌───────────────┬───────────────┐\n` +
-    `│    BUY ZONE   │   SELL ZONE   │\n` +
-    `│  ≤ ${boundaries.bottom} │  ≥ ${boundaries.top} │\n` +
-    `└───────────────┴───────────────┘\n` +
-    `Current Price: ${price}`
+
+  const analysis = await analyzeMarketConditions();
+  const { short, medium, long } = analysis;
+
+  // Determine direction using multi-timeframe confirmation
+  let direction;
+  if (short.trend === 'bullish' && medium.trend === 'bullish') {
+    direction = 'Buy';
+  } else if (short.trend === 'bearish' && medium.trend === 'bearish') {
+    direction = 'Sell';
+  } else {
+    direction = config.initialTradeSide || 'Buy'; // Fallback
+  }
+
+  // Dynamic spacing based on volatility (BBands width)
+  const bbWidth = short.bbands.upper.slice(-1)[0] - short.bbands.lower.slice(-1)[0];
+  const spacing = Math.min(
+    Math.max(bbWidth * 0.3, config.minSpacing),
+    config.maxSpacing
   );
 
-  checkForNewTradeOpportunity(price); // Immediate check
+  boundaries = {
+    top: direction === 'Buy' ? null : toPrecision(price + spacing),
+    bottom: direction === 'Sell' ? null : toPrecision(price - spacing)
+  };
+
+  saveBoundary({ trailingBoundary, boundaries });
+  
+  sendMessage(
+    `🎯 Multi-Timeframe Trade Zones Ready\n` +
+    `┌───────────────┬───────────────┐\n` +
+    `│    BUY ZONE   │   SELL ZONE   │\n` +
+    `│  ≤ ${boundaries.bottom || 'N/A'} │  ≥ ${boundaries.top || 'N/A'} │\n` +
+    `└───────────────┴───────────────┘\n` +
+    `📊 Short-term: ${short.trend.toUpperCase()} (RSI: ${short.rsi.slice(-1)[0].toFixed(1)})\n` +
+    `📈 Medium-term: ${medium.trend.toUpperCase()}\n` +
+    `📉 Long-term: ${long.trend.toUpperCase()}\n` +
+    `BBands Width: ${bbWidth.toFixed(1)} | Spacing: ${spacing.toFixed(1)}`
+  );
+
+  checkForNewTradeOpportunity(price, analysis);
 }
 
-function checkForNewTradeOpportunity(price) {
+async function checkForNewTradeOpportunity(price, forceAnalysis = null) {
   if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) return;
 
+  const analysis = forceAnalysis || await analyzeMarketConditions();
+  const { short, medium } = analysis;
+
+  // Strong confirmation required for counter-trend trades
+  const strongBullish = short.trend === 'bullish' && medium.trend === 'bullish';
+  const strongBearish = short.trend === 'bearish' && medium.trend === 'bearish';
+
   if (price >= boundaries.top) {
-    openMainTrade("Buy", price);
+    if (strongBullish || (config.allowCounterTrend && short.rsi.slice(-1)[0] < 60)) {
+      openMainTrade("Buy", price);
+    } else {
+      sendMessage(
+        `⚠️ Buy signal rejected - Trend mismatch\n` +
+        `Short: ${short.trend} | Medium: ${medium.trend}\n` +
+        `RSI: ${short.rsi.slice(-1)[0].toFixed(1)}`
+      );
+    }
   } 
   else if (price <= boundaries.bottom) {
-    openMainTrade("Sell", price);
+    if (strongBearish || (config.allowCounterTrend && short.rsi.slice(-1)[0] > 40)) {
+      openMainTrade("Sell", price);
+    } else {
+      sendMessage(
+        `⚠️ Sell signal rejected - Trend mismatch\n` +
+        `Short: ${short.trend} | Medium: ${medium.trend}\n` +
+        `RSI: ${short.rsi.slice(-1)[0].toFixed(1)}`
+      );
+    }
   }
 }
-
 
 async function startBot() {
   fetchPrecision(config);
