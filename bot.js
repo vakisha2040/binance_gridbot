@@ -42,7 +42,7 @@ let lastKillResetTime = 0;
 let hedgeOpeningInProgress = false;
 let boundaryLocked = false;
 const { analyze } = require('./technical'); // make sure analyze() is exported
-const RETRY_DELAY = 60 * 1000; // 60 seconds
+const RETRY_DELAY = 60 * 2000; // 120 seconds
 
 
 
