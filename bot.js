@@ -146,25 +146,9 @@ async function startBot() {
     if (!price) {
       sendMessage("⚠️ Unable to fetch price for main trade on startup.");
       return;
-    }
-    
+    }  
   
-  const signal = await analyze(); // 'BUY', 'SELL', or 'WAIT'
-
-  if (signal === 'BUY') {
-    openMainTrade("Buy", price);
-    sendMessage(` 🕐 Signal is BUY, Placing Buy order...`);
-  } 
-  else if (signal === 'SELL') {
-    openMainTrade("Sell", price);
-    sendMessage(` 🕐 Signal is SELL, Placing sell order...`);
-  } 
-  else {
-  
-    sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
-  //  setTimeout(checkForNewTradeOpportunity, RETRY_DELAY);
-  }
-  
+  checkForNewTradeOpportunity(price);
   
   }
 
