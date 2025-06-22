@@ -111,15 +111,15 @@ const spacing = config.tradeEntrySpacing || 100;
   
   //  sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
    // Using setInterval to run the code every 30 seconds (30000 milliseconds)
-const intervalId = setInterval(() => {
-    sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
-}, 60000); 
+//const intervalId = setInterval(() => {
+  //  sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
+//}, 60000); 
 
  
     setTimeout(checkForNewTradeOpportunity, RETRY_DELAY);
 
   }
-  clearInterval(intervalId);
+
 }
 
 
@@ -223,7 +223,7 @@ async function resetBot() {
     console.error('Reset failed:', e);
     
     // Emergency fallback - force clear everything
-    state.forceReset();
+   // state.forceReset();
     boundaries = { top: null, bottom: null };
     
     throw e; // Re-throw for upstream handling
