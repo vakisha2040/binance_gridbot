@@ -24,5 +24,15 @@
   "hedgeKillSpacing": 20,
   "hedgeBreakthroughPrice": 105,
   "hedgeKillResetMultiplier": 1.4,
-  "testnet": false
+  "testnet": false,
+  "trailingThreshold": 50,
+  "emergencyThresholdMultiplier": 2,
+  "hedgeOpenRetryDelay": 5000,
+  "monitorInterval": 1000,
+  "trailingThreshold": 50,
+  "volatilityAdjustment": true,
+  "levelBasedSpacing": true,
+  "minHedgeBoundaryMove": 20,
+  "hedgeBoundaryUpdateInterval": 30000,
+  "boundaryUpdateInterval": 30000
 }
