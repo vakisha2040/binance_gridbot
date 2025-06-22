@@ -98,9 +98,6 @@ function stopBot() {
   sendMessage('🛑 Bot stopped');
 }
 
-function persistBoundaries() {
-  saveBoundary({ trailingBoundary, boundaries });
-}
 
 async function initializeBoundaries() {
   const price = getCurrentPrice();
@@ -109,117 +106,166 @@ async function initializeBoundaries() {
     return;
   }
 
-  // Clear any existing boundaries
-  boundaries.top = null;
-  boundaries.bottom = null;
-
   const mainTrade = state.getMainTrade();
   if (mainTrade) {
     if (mainTrade.side === 'Buy') {
       boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
+      boundaries.top = null;
+      sendMessage(`🔵 Buy main trade - bottom boundary set at ${boundaries.bottom} (current: ${price})`);
     } else {
       boundaries.top = toPrecision(price + config.newBoundarySpacing);
+      boundaries.bottom = null;
+      sendMessage(`🔴 Sell main trade - top boundary set at ${boundaries.top} (current: ${price})`);
     }
   } else {
     boundaries.top = toPrecision(price + config.tradeEntrySpacing);
     boundaries.bottom = toPrecision(price - config.tradeEntrySpacing);
+    sendMessage(`⚪ No main trade - boundaries set at ${boundaries.bottom}-${boundaries.top} (current: ${price})`);
   }
 
   persistBoundaries();
-  sendMessage(`🔲 Boundaries set: ${JSON.stringify(boundaries)}`);
 }
 
 
 async function monitorPrice() {
   while (state.isRunning()) {
-    const price = getCurrentPrice();
-    if (!price) {
-      await delay(1000);
-      continue;
-    }
+    try {
+      const price = getCurrentPrice();
+      if (!price) {
+        await delay(1000);
+        continue;
+      }
 
-    const mainTrade = state.getMainTrade();
-    const hedgeTrade = state.getHedgeTrade();
-    const inCooldown = Date.now() < hedgeCooldownUntil;
+      const mainTrade = state.getMainTrade();
+      const hedgeTrade = state.getHedgeTrade();
+      const inCooldown = Date.now() < hedgeCooldownUntil;
+      const now = Date.now();
 
-    // 1. Handle hedge trade opening with boundary checks
-    if (!mainTrade && !hedgeTrade && !hedgeOpeningInProgress && !inCooldown) {
-      const boundariesValid = (boundaries.top !== null || boundaries.bottom !== null);
-      
-      if (boundariesValid) {
-        if (boundaries.bottom && price <= boundaries.bottom) {
-          hedgeOpeningInProgress = true;
-          try {
-            await openHedgeTrade('Buy', price);
-          } catch (e) {
-            sendMessage(`❌ Failed to open Buy hedge: ${e.message}`);
+      // 1. HEDGE TRADE OPENING LOGIC ===========================================
+      if (!hedgeTrade && !hedgeOpeningInProgress && !inCooldown) {
+        // For Buy main trades (need Sell hedge)
+        if (mainTrade?.side === 'Buy' && boundaries.bottom) {
+          const effectiveBoundary = boundaries.bottom + (config.boundaryTolerance || 1.0);
+          
+          if (price <= effectiveBoundary) {
+            hedgeOpeningInProgress = true;
+            sendMessage(
+              `⚠️ PRICE CROSSED BOUNDARY\n` +
+              `▫️ Main Trade: Buy @ ${mainTrade.entry}\n` +
+              `▫️ Boundary: ${boundaries.bottom} (effective: ${effectiveBoundary})\n` +
+              `▫️ Current: ${price}\n` +
+              `🛡️ Attempting Sell hedge...`
+            );
+
+            try {
+              await openHedgeTrade('Sell', price);
+              sendMessage(`✅ Sell hedge opened at ${price}`);
+            } catch (e) {
+              sendMessage(`❌ FAILED to open Sell hedge: ${e.message}`);
+              // Schedule retry if still below boundary
+              if (price <= effectiveBoundary) {
+                const retryDelay = config.hedgeOpenRetryDelay || 5000;
+                sendMessage(`⏳ Will retry hedge open in ${retryDelay/1000} sec...`);
+                await delay(retryDelay);
+                continue; // Jump to next iteration for retry
+              }
+            } finally {
+              hedgeOpeningInProgress = false;
+            }
           }
-          hedgeOpeningInProgress = false;
-        } 
-        else if (boundaries.top && price >= boundaries.top) {
-          hedgeOpeningInProgress = true;
-          try {
-            await openHedgeTrade('Sell', price);
-          } catch (e) {
-            sendMessage(`❌ Failed to open Sell hedge: ${e.message}`);
+        }
+        // For Sell main trades (need Buy hedge)
+        else if (mainTrade?.side === 'Sell' && boundaries.top) {
+          const effectiveBoundary = boundaries.top - (config.boundaryTolerance || 1.0);
+          
+          if (price >= effectiveBoundary) {
+            hedgeOpeningInProgress = true;
+            sendMessage(
+              `⚠️ PRICE CROSSED BOUNDARY\n` +
+              `▫️ Main Trade: Sell @ ${mainTrade.entry}\n` +
+              `▫️ Boundary: ${boundaries.top} (effective: ${effectiveBoundary})\n` +
+              `▫️ Current: ${price}\n` +
+              `🛡️ Attempting Buy hedge...`
+            );
+
+            try {
+              await openHedgeTrade('Buy', price);
+              sendMessage(`✅ Buy hedge opened at ${price}`);
+            } catch (e) {
+              sendMessage(`❌ FAILED to open Buy hedge: ${e.message}`);
+              if (price >= effectiveBoundary) {
+                const retryDelay = config.hedgeOpenRetryDelay || 5000;
+                sendMessage(`⏳ Will retry hedge open in ${retryDelay/1000} sec...`);
+                await delay(retryDelay);
+                continue;
+              }
+            } finally {
+              hedgeOpeningInProgress = false;
+            }
           }
-          hedgeOpeningInProgress = false;
         }
       }
-    }
 
-    // 2. Handle main trade logic
-    if (mainTrade) {
-      await handleMainTrade(price);
+      // 2. MAIN TRADE HANDLING ================================================
+      if (mainTrade) {
+        await handleMainTrade(price);
 
-      // Price trailing for main trade
-      if (!hedgeTrade && !inCooldown) {
-        const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
-        const priceFromBoundary = mainTrade.side === 'Buy' 
-          ? price - (currentBoundary || 0)
-          : (currentBoundary || Infinity) - price;
+        // Price trailing for main trade
+        if (!hedgeTrade && !inCooldown) {
+          const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
+          if (currentBoundary) {
+            const priceFromBoundary = mainTrade.side === 'Buy' 
+              ? price - currentBoundary
+              : currentBoundary - price;
 
-        // Trail if price moved favorably beyond threshold
-        if (priceFromBoundary > (config.trailingThreshold || 50)) {
+            // Trail if price moved favorably beyond threshold
+            if (priceFromBoundary > (config.trailingThreshold || 50)) {
+              setImmediateHedgeBoundary(price);
+            }
+
+            // Emergency boundary update if price moved too far
+            const emergencyThreshold = (config.zeroLevelSpacing * 2);
+            if (priceFromBoundary > emergencyThreshold) {
+              sendMessage(`🚨 EMERGENCY BOUNDARY UPDATE (moved ${priceFromBoundary} from boundary)`);
+              setImmediateHedgeBoundary(price, true);
+            }
+          }
+        }
+      }
+
+      // 3. HEDGE TRADE HANDLING ==============================================
+      if (hedgeTrade) {
+        await handleHedgeTrade(price);
+        
+        // Check kill switch only if not in manual mode
+        if (!hedgeTrade.manual) {
+          await killHedge();
+        }
+      }
+
+      // 4. COOLDOWN MANAGEMENT ===============================================
+      if (inCooldown && now >= hedgeCooldownUntil - 1000) {
+        sendMessage("🔄 Hedge cooldown period ending soon");
+      }
+
+      // 5. PERIODIC BOUNDARY CHECK ===========================================
+      if (now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL) {
+        if (mainTrade && !hedgeTrade && !boundaryLocked) {
           setImmediateHedgeBoundary(price);
         }
-
-        // Emergency boundary update if price moved too far
-        const emergencyThreshold = (config.zeroLevelSpacing * 2);
-        if (priceFromBoundary > emergencyThreshold) {
-          sendMessage(`🚨 Emergency boundary update (price moved ${priceFromBoundary} from boundary)`);
-          setImmediateHedgeBoundary(price, true);
-        }
+        lastBoundaryUpdateTime = now;
       }
-    }
 
-    // 3. Handle hedge trade logic
-    if (hedgeTrade) {
-      await handleHedgeTrade(price);
-      
-      // Check kill switch only if not in manual mode
-      if (!hedgeTrade.manual) {
-        await killHedge();
-      }
-    }
+      await delay(config.monitorInterval || 1000);
 
-    // 4. Handle cooldown completion
-    if (inCooldown && Date.now() >= hedgeCooldownUntil - 1000) {
-      sendMessage("🔄 Hedge cooldown period ending soon");
+    } catch (e) {
+      sendMessage(`‼️ CRITICAL MONITOR ERROR: ${e.message}\n${e.stack}`);
+      await delay(5000); // Prevent tight error loops
     }
-
-    // 5. Periodic boundary check (every 30 seconds)
-    const now = Date.now();
-    if (now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL) {
-      if (mainTrade && !hedgeTrade && !boundaryLocked) {
-        setImmediateHedgeBoundary(price);
-      }
-      lastBoundaryUpdateTime = now;
-    }
-
-    await delay(1000); // Prevent CPU overload
   }
 }
+
+
 
 
 
