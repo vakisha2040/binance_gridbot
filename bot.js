@@ -151,6 +151,29 @@ async function initializeFreshBoundaries() {
 async function checkForNewTradeOpportunity(price, forceAnalysis = null) {
   if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) return;
 
+  
+  try {
+    const { trend, indicators } = await technical.getIndicatorSnapshot();
+    
+    if (price >= boundaries.top) {
+      // Only buy if trend confirms or RSI isn't overbought
+      if (trend.includes('bullish') || indicators.short.rsi < 70) {
+        openMainTrade("BUY", price);
+      } else {
+        sendMessage(`⚠️ Buy signal rejected (${trend} trend, RSI ${indicators.short.rsi.toFixed(1)})`);
+      }
+    } 
+    else if (price <= boundaries.bottom) {
+      // Only sell if trend confirms or RSI isn't oversold
+      if (trend.includes('bearish') || indicators.short.rsi > 30) {
+        openMainTrade("SELL", price);
+      } else {
+        sendMessage(`⚠️ Sell signal rejected (${trend} trend, RSI ${indicators.short.rsi.toFixed(1)})`);
+      }
+    }
+  } catch (err) {
+    console.error('Trade opportunity check failed:', err);
+  }
   const analysis = forceAnalysis || await technical.getMultiTimeframeAnalysis(bybit.exchange, config.symbol);
   const trend = technical.getTrendDirection(analysis);
   const lastRsi = analysis.short.rsi.slice(-1)[0];
@@ -183,6 +206,16 @@ async function startBot() {
   startPolling(1000);
   await waitForFirstPrice();
   state.startBot();
+
+  // Initialize technical analysis
+  try {
+    await priceFeed.initialize(); // Load historical candle data
+    sendMessage('📊 Technical indicators ready');
+  } catch (err) {
+    sendMessage(`❌ Failed to initialize indicators: ${err.message}`);
+    throw err;
+  }
+
   
   const mainTrade = state.getMainTrade();
   const hedgeTrade = state.getHedgeTrade();
@@ -440,6 +473,15 @@ async function monitorPrice() {
       if (!price) {
         await delay(1000);
         continue;
+      }
+if (Date.now() % 300000 < 1000) { // ~5 minute interval
+        const snapshot = await technical.getIndicatorSnapshot();
+        sendMessage(
+          `📈 Market Status:\n` +
+          `Trend: ${snapshot.trend}\n` +
+          `RSI: ${snapshot.indicators.short.rsi.toFixed(1)}\n` +
+          `Price/Ema21: ${(price/snapshot.indicators.short.ema21 * 100).toFixed(1)}%`
+        );
       }
 
       const mainTrade = state.getMainTrade();
@@ -965,68 +1007,6 @@ function calculateTrailingHedgeOpenPrice(
   return toPrecision(newOpenPrice);
 }
 
-/*
-function setImmediateHedgeBoundary(price, force = false) {
-  const now = Date.now();
-  const throttle = config.hedgeBoundaryUpdateInterval || 30000;
-  const minMove = config.minHedgeBoundaryMove || 20;
-
-  if (!force && boundaryLocked) return;
-  if (!force && now - lastBoundaryUpdateTime < throttle) return;
-  lastBoundaryUpdateTime = now;
-
-  const mainTrade = state.getMainTrade();
-  if (!mainTrade) return;
-
-  const trailingBoundary = config.trailingBoundary || 100;
-  const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 150;
-  const lastClose = lastHedgeClosePrice || price;
-
-  const newBoundary = calculateTrailingHedgeOpenPrice(
-    lastClose,
-    price,
-    config.tradeEntrySpacing,
-    trailingBoundary,
-    maxHedgeTrailDistance,
-    mainTrade.side
-  );
-
-  const distance = Math.abs(price - lastClose);
-  const moveEnough = (prev, next) => Math.abs(prev - next) >= minMove;
-
-  if (mainTrade.side === 'Buy') {
-    if (!boundaries.bottom || 
-        (newBoundary > boundaries.bottom && moveEnough(boundaries.bottom, newBoundary))) {
-      boundaries.bottom = newBoundary;
-      boundaries.top = null;
-      persistBoundaries();
-      sendMessage(
-        `🟦 New bottom hedge boundary set\n` +
-        `🔹 Main trade side: Buy\n` +
-        `📉 Last hedge close: ${lastClose}\n` +
-        `📈 Current price: ${price}\n` +
-        `📏 Distance moved: ${toPrecision(distance)}\n` +
-        `🎯 New bottom boundary: ${boundaries.bottom}`
-      );
-    }
-  } else if (mainTrade.side === 'Sell') {
-    if (!boundaries.top || 
-        (newBoundary < boundaries.top && moveEnough(boundaries.top, newBoundary))) {
-      boundaries.top = newBoundary;
-      boundaries.bottom = null;
-      persistBoundaries();
-      sendMessage(
-        `🟥 New top hedge boundary set\n` +
-        `🔸 Main trade side: Sell\n` +
-        `📉 Last hedge close: ${lastClose}\n` +
-        `📈 Current price: ${price}\n` +
-        `📏 Distance moved: ${toPrecision(distance)}\n` +
-        `🎯 New top boundary: ${boundaries.top}`
-      );
-    }
-  }
-}
-*/
 
 
 
