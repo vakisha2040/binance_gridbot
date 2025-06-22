@@ -47,6 +47,50 @@ function getGridSpacing(level) {
   return config.gridSpacing;
 }
 
+async function analyzeMarketConditions() {
+  const { short, medium, long } = await getMultiTimeframeData(config.symbol);
+  
+  // Short-term indicators
+  const shortIndicators = {
+    ema: await calculateEMA(short.closes, 21),
+    macd: await calculateMACD(short.closes),
+    rsi: await calculateRSI(short.closes),
+    bbands: await calculateBollingerBands(short.closes)
+  };
+  
+  // Medium-term trend
+  const mediumIndicators = {
+    ema: await calculateEMA(medium.closes, 50),
+    macd: await calculateMACD(medium.closes, 26, 52, 9)
+  };
+  
+  // Long-term trend
+  const longIndicators = {
+    ema: await calculateEMA(long.closes, 200),
+    macd: await calculateMACD(long.closes, 50, 100, 18)
+  };
+  
+  return {
+    short: {
+      ...shortIndicators,
+      trend: getTrendConsensus({
+        ...shortIndicators,
+        price: short.closes[short.closes.length - 1]
+      })
+    },
+    medium: {
+      ...mediumIndicators,
+      trend: mediumIndicators.ema.slice(-1)[0] < medium.closes.slice(-1)[0] ? 
+             'bullish' : 'bearish'
+    },
+    long: {
+      ...longIndicators,
+      trend: longIndicators.ema.slice(-1)[0] < long.closes.slice(-1)[0] ?
+             'bullish' : 'bearish'
+    }
+  };
+}
+
 async function initializeFreshBoundaries() {
   boundaryLocked = false;
   const price = getCurrentPrice();
@@ -131,12 +175,12 @@ async function checkForNewTradeOpportunity(price, forceAnalysis = null) {
   }
 }
 
+
 async function startBot() {
   fetchPrecision(config);
   startPolling(1000);
   await waitForFirstPrice();
   state.startBot();
-  sendMessage('🤖 Bot started');
   
   const mainTrade = state.getMainTrade();
   const hedgeTrade = state.getHedgeTrade();
@@ -155,9 +199,42 @@ async function startBot() {
       sendMessage("⚠️ Unable to fetch price for main trade on startup.");
       return;
     }
-    
-    const initialSide = config.initialTradeSide || 'Buy';
-    await openMainTrade(initialSide, price);
+
+    // Get multi-timeframe analysis
+    const analysis = await analyzeMarketConditions();
+    sendMessage(
+      `📊 Market Analysis:\n` +
+      `┌─────────────────┬───────────────┐\n` +
+      `│ Timeframe       │ Trend         │\n` +
+      `├─────────────────┼───────────────┤\n` +
+      `│ Short (15m)     │ ${analysis.short.trend.toUpperCase().padEnd(13)}│\n` +
+      `│ Medium (1h)     │ ${analysis.medium.trend.toUpperCase().padEnd(13)}│\n` +
+      `│ Long (4h)       │ ${analysis.long.trend.toUpperCase().padEnd(13)}│\n` +
+      `└─────────────────┴───────────────┘\n` +
+      `RSI: ${analysis.short.rsi.slice(-1)[0].toFixed(1)} | ` +
+      `MACD Hist: ${analysis.short.macd.histogram.slice(-1)[0].toFixed(2)}`
+    );
+
+    // Determine direction using trend consensus
+    let direction;
+    if (analysis.short.trend === 'bullish' && analysis.medium.trend === 'bullish') {
+      direction = 'Buy';
+      sendMessage(`✅ Strong bullish consensus - Starting with Buy`);
+    } 
+    else if (analysis.short.trend === 'bearish' && analysis.medium.trend === 'bearish') {
+      direction = 'Sell';
+      sendMessage(`✅ Strong bearish consensus - Starting with Sell`);
+    }
+    else {
+      // Neutral market - use config default with caution
+      direction = config.initialTradeSide || 'Buy';
+      sendMessage(
+        `⚠️ No clear trend - Using default ${direction} position\n` +
+        `Set 'initialTradeSide' in config.json to override`
+      );
+    }
+
+    await openMainTrade(direction, price);
   }
 
   monitorPrice();
@@ -183,6 +260,7 @@ function stopBot() {
   state.stopBot();
   sendMessage('🛑 Bot stopped');
 }
+
 
 
 async function initializeBoundaries() {
