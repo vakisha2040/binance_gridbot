@@ -109,7 +109,7 @@ const spacing = config.tradeEntrySpacing || 100;
   } 
   else {
   
-    sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
+  //  sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
    // Using setInterval to run the code every 30 seconds (30000 milliseconds)
 //const intervalId = setInterval(() => {
   //  sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
@@ -183,7 +183,7 @@ async function resetBot() {
     // 2. Clear all trading state
     state.clearMainTrade();
     state.clearHedgeTrade();
-    state.resetAll();
+  //  state.resetAll();
     
     // 3. Cancel all pending orders (with retry logic)
     await retryOperation(
