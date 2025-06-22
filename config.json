@@ -33,6 +33,8 @@
   "volatilityAdjustment": true,
   "levelBasedSpacing": true,
   "minHedgeBoundaryMove": 20,
-  "hedgeBoundaryUpdateInterval": 30000,
-  "boundaryUpdateInterval": 30000
+  "boundaryUpdateInterval": 30000,
+  "boundaryTolerance": 1.0,
+  "trailingThreshold": 5,
+  "emergencyThresholdMultiplier": 2,
 }
