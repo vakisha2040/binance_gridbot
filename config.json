@@ -35,6 +35,20 @@
   "minHedgeBoundaryMove": 20,
   "debug": false,
   "boundaryUpdateInterval": 3000,
+  "technicalIndicators": {
+    "emaPeriods": [21, 50, 200],
+    "macdConfigs": {
+      "short": [12, 26, 9],
+      "medium": [26, 52, 9],
+      "long": [50, 100, 18]
+    },
+    "rsiPeriod": 14,
+    "bbandsPeriod": 20,
+    "minSpacing": 50,
+    "maxSpacing": 200,
+    "allowCounterTrend": false
+  },
+  "timeframes": ["15m", "1h", "4h"],
   "boundaryTolerance": 1.0,
   "trailingThreshold": 5,
   "emergencyThresholdMultiplier": 2
