@@ -5,6 +5,8 @@
   "stepSize": 1,
   "leverage": 70,
   "orderSize": 0.001,
+  "hedgeCooldownPeriod": 30000,
+  "initialTradeSide": "Buy",
   "startPrice": null,
   "tradeEntrySpacing": 100,
   "trailingBoundary": 100,
