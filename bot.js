@@ -693,97 +693,113 @@ function setImmediateHedgeBoundary(price, force = false) {
 }
 */
 
+
 function setImmediateHedgeBoundary(price, force = false) {
-  const now = Date.now();
-  const throttle = config.hedgeBoundaryUpdateInterval || 30000;
-  const minMove = config.minHedgeBoundaryMove || 20;
-
-  if (!force && boundaryLocked) return;
-  if (!force && now - lastBoundaryUpdateTime < throttle) return;
-  
-  const mainTrade = state.getMainTrade();
-  if (!mainTrade) return;
-
-  // Get the latest price if none was provided
-  const currentPrice = price || getCurrentPrice();
-  if (!currentPrice) return;
-
-  // Calculate how much price has moved since last boundary update
-  const lastBoundaryPrice = mainTrade.side === 'Buy' 
-    ? boundaries.bottom 
-    : boundaries.top;
-  const priceChange = lastBoundaryPrice 
-    ? Math.abs(currentPrice - lastBoundaryPrice)
-    : 0;
-
-  // Only update if price has moved sufficiently
-  if (!force && priceChange < minMove) {
-    sendMessage(`↩️ Price change (${priceChange}) below minimum (${minMove}) - boundary not updated`);
-    return;
-  }
-
-  // Enhanced trailing calculation
-  let newBoundary;
-  if (mainTrade.side === 'Buy') {
-    // For long positions, trail the bottom boundary up
-    const dynamicSpacing = calculateDynamicSpacing(currentPrice, mainTrade);
-    newBoundary = toPrecision(currentPrice - dynamicSpacing);
+    const now = Date.now();
+    const mainTrade = state.getMainTrade();
     
-    // Never move boundary down (only tighten)
-    if (boundaries.bottom && newBoundary < boundaries.bottom) {
-      sendMessage(`↩️ Would loosen bottom boundary (${newBoundary} < ${boundaries.bottom}) - maintaining current`);
-      return;
+    // 1. VALIDATION CHECKS
+    if (!mainTrade || !price) {
+        sendMessage("⚠️ Cannot set boundary: No main trade or invalid price");
+        return;
     }
-    
-    boundaries.bottom = newBoundary;
-    boundaries.top = null;
-  } else {
-    // For short positions, trail the top boundary down
-    const dynamicSpacing = calculateDynamicSpacing(currentPrice, mainTrade);
-    newBoundary = toPrecision(currentPrice + dynamicSpacing);
-    
-    // Never move boundary up (only tighten)
-    if (boundaries.top && newBoundary > boundaries.top) {
-      sendMessage(`↩️ Would loosen top boundary (${newBoundary} > ${boundaries.top}) - maintaining current`);
-      return;
-    }
-    
-    boundaries.top = newBoundary;
-    boundaries.bottom = null;
-  }
 
-  lastBoundaryUpdateTime = now;
-  persistBoundaries();
-  
-  sendMessage(
-    `🔄 Trailing boundary updated\n` +
-    `🔸 Main trade: ${mainTrade.side} @ ${mainTrade.entry}\n` +
-    `📈 Current price: ${currentPrice}\n` +
-    `🎯 New boundary: ${mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top}\n` +
-    `📏 Change: ${priceChange}`
-  );
+    // 2. COOLDOWN & THROTTLING
+    const sinceLastUpdate = now - lastBoundaryUpdateTime;
+    const throttleTime = config.hedgeBoundaryUpdateInterval || 30000;
+    
+    if (!force && (boundaryLocked || sinceLastUpdate < throttleTime)) {
+        sendMessage(`↩️ Boundary update throttled (${Math.floor(sinceLastUpdate/1000)}s < ${throttleTime/1000}s)`);
+        return;
+    }
+
+    // 3. CALCULATE NEW BOUNDARY
+    const lastClose = lastHedgeClosePrice || mainTrade.entry;
+    const priceChange = Math.abs(price - lastClose);
+    const minMove = config.minHedgeBoundaryMove || 20;
+    
+    // Only update if price moved sufficiently or forced
+    if (!force && priceChange < minMove) {
+        sendMessage(`↩️ Price change (${priceChange.toFixed(1)}) < min move (${minMove}) - boundary unchanged`);
+        return;
+    }
+
+    // 4. DYNAMIC BOUNDARY CALCULATION
+    let newBoundary, boundaryType;
+    if (mainTrade.side === 'Buy') {
+        // For LONG positions, trail the BOTTOM boundary up
+        const dynamicSpacing = calculateDynamicSpacing(price, mainTrade);
+        newBoundary = toPrecision(price - dynamicSpacing);
+        boundaryType = 'bottom';
+        
+        // Safety check - never move boundary down (only tighten)
+        if (boundaries.bottom && newBoundary < boundaries.bottom) {
+            sendMessage(`↩️ Would loosen bottom boundary (${newBoundary} < ${boundaries.bottom}) - maintaining current`);
+            return;
+        }
+        
+        boundaries.bottom = newBoundary;
+        boundaries.top = null;
+    } else {
+        // For SHORT positions, trail the TOP boundary down
+        const dynamicSpacing = calculateDynamicSpacing(price, mainTrade);
+        newBoundary = toPrecision(price + dynamicSpacing);
+        boundaryType = 'top';
+        
+        // Safety check - never move boundary up (only tighten)
+        if (boundaries.top && newBoundary > boundaries.top) {
+            sendMessage(`↩️ Would loosen top boundary (${newBoundary} > ${boundaries.top}) - maintaining current`);
+            return;
+        }
+        
+        boundaries.top = newBoundary;
+        boundaries.bottom = null;
+    }
+
+    // 5. UPDATE STATE
+    lastBoundaryUpdateTime = now;
+    persistBoundaries();
+
+    // 6. DETAILED LOGGING
+    const logMessage = [
+        `🔄 ${force ? 'FORCED ' : ''}Boundary Updated`,
+        `▫️ Main Trade: ${mainTrade.side} @ ${mainTrade.entry}`,
+        `▫️ Last Close: ${lastClose}`,
+        `▫️ Current: ${price}`,
+        `▫️ Change: ${priceChange.toFixed(1)}`,
+        `▫️ New ${boundaryType.toUpperCase()}: ${newBoundary}`,
+        `▫️ Grid Level: ${mainTrade.level}`
+    ].join('\n');
+
+    sendMessage(logMessage);
 }
 
-function calculateDynamicSpacing(currentPrice, mainTrade) {
-  // Base spacing
-  let spacing = config.newBoundarySpacing;
-  
-  // Adjust based on volatility (optional enhancement)
-  if (config.volatilityAdjustment) {
-    const priceChange = Math.abs(currentPrice - mainTrade.entry);
-    const volatilityFactor = Math.min(1 + (priceChange / (config.zeroLevelSpacing * 10)), 1.5);
-    spacing *= volatilityFactor;
-  }
-  
-  // Adjust based on grid level (optional)
-  if (config.levelBasedSpacing && mainTrade.level > 0) {
-    spacing *= (1 + (mainTrade.level * 0.1)); // 10% increase per level
-  }
-  
-  return spacing;
+// Helper function for dynamic spacing calculation
+function calculateDynamicSpacing(currentPrice, trade) {
+    // 1. Base spacing from config
+    let spacing = config.newBoundarySpacing || 100;
+    
+    // 2. Volatility adjustment (optional)
+    if (config.volatilityAdjustment) {
+        const priceChange = Math.abs(currentPrice - trade.entry);
+        const volatilityFactor = Math.min(1 + (priceChange / (config.zeroLevelSpacing * 10)), 1.5);
+        spacing *= volatilityFactor;
+    }
+    
+    // 3. Grid level adjustment (optional)
+    if (config.levelBasedSpacing && trade.level > 0) {
+        spacing *= (1 + (trade.level * 0.05)); // 5% increase per level
+    }
+    
+    // 4. Emergency widening (if price moved too fast)
+    const emergencyMove = config.zeroLevelSpacing * 3;
+    if (Math.abs(currentPrice - (lastHedgeClosePrice || trade.entry)) > emergencyMove) {
+        spacing *= 1.2; // 20% wider in emergencies
+        sendMessage(`🚨 Emergency boundary widening applied`);
+    }
+    
+    return toPrecision(spacing);
 }
-
-
 
 
 
