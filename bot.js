@@ -109,14 +109,14 @@ const spacing = config.tradeEntrySpacing || 100;
   } 
   else {
   
-  //  sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
+    sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
    // Using setInterval to run the code every 30 seconds (30000 milliseconds)
 //const intervalId = setInterval(() => {
   //  sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
 //}, 60000); 
 
  
-    setTimeout(checkForNewTradeOpportunity, RETRY_DELAY);
+  //  setTimeout(checkForNewTradeOpportunity, RETRY_DELAY);
 
   }
 
@@ -307,7 +307,7 @@ async function stopBot() {
     // 7. Force cleanup if needed
     process.nextTick(() => {
       if (state.isRunning()) {
-        state.forceStop();
+        //state.forceStop();
         sendMessage('⚠️ Had to force stop bot');
       }
     });
@@ -316,7 +316,9 @@ async function stopBot() {
     console.error('Stop error:', e);
   } finally {
     // Ensure we always stop
-    state.forceStop();
+   boundaries = { top: null, bottom: null };
+    
+    //state.forceStop();
   }
 }
 
