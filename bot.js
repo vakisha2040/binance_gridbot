@@ -78,12 +78,12 @@ async function initializeFreshBoundaries() {
   checkForNewTradeOpportunity(price); // Immediate check
 }
 
-function checkForNewTradeOpportunity(price) {
+ function checkForNewTradeOpportunity(price) {
  
   if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) 
     return;
 
-  const signal = await analyze();
+  const signal =  analyze();
  
   if (signal === 'BUY') {
     openMainTrade("Buy", price);
@@ -126,7 +126,7 @@ async function startBot() {
     }
 
 
-const signal = await analyze(); // 'BUY', 'SELL', or 'WAIT'
+const signal =  analyze(); // 'BUY', 'SELL', or 'WAIT'
 
   if (signal === 'BUY') {
     openMainTrade("Buy", price);
