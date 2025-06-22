@@ -707,7 +707,7 @@ function setImmediateHedgeBoundary(price, force = false) {
             return;
         }
 
-        // 2. COOLDOWN & THROTTLING (with proper time calculation)
+        // 2. COOLDOWN & THROTTLING
         const sinceLastUpdate = now - (lastBoundaryUpdateTime || 0);
         const throttleTime = config.hedgeBoundaryUpdateInterval || 30000;
         
@@ -718,13 +718,15 @@ function setImmediateHedgeBoundary(price, force = false) {
             }
             
             if (sinceLastUpdate < throttleTime) {
-                // Only log throttling message if we're close to next allowed update
-                if (throttleTime - sinceLastUpdate < 10000) { // Only log if <10s remaining
-                    if (config.debug) sendMessage(`⏳ Boundary update throttled (${Math.ceil((throttleTime - sinceLastUpdate)/1000}s remaining)`);
+                // Only log throttling if we're close to next allowed update
+                if (throttleTime - sinceLastUpdate < 10000) { // <10s remaining
+                    const secondsRemaining = Math.ceil((throttleTime - sinceLastUpdate)/1000);
+                    if (config.debug) sendMessage(`⏳ Boundary update throttled (${secondsRemaining}s remaining)`);
                 }
                 return;
             }
         }
+
 
         // 3. CALCULATE NEW BOUNDARY
         const lastClose = lastHedgeClosePrice || mainTrade.entry;
@@ -787,13 +789,6 @@ function setImmediateHedgeBoundary(price, force = false) {
         sendMessage(`❌ Boundary update failed: ${e.message}`);
     }
 }
-
-// Add to your config.json:
-// {
-//   "debug": true,
-//   "hedgeBoundaryUpdateInterval": 30000,
-//   "minHedgeBoundaryMove": 20
-// }
 
 
 
