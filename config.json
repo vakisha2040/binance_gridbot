@@ -33,6 +33,7 @@
   "volatilityAdjustment": true,
   "levelBasedSpacing": true,
   "minHedgeBoundaryMove": 20,
+  "debug": true,
   "boundaryUpdateInterval": 30000,
   "boundaryTolerance": 1.0,
   "trailingThreshold": 5,
