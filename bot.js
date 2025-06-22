@@ -241,27 +241,169 @@ async function startBot() {
 }
 
 async function resetBot() {
-  state.clearMainTrade();
-  state.clearHedgeTrade();
-  state.stopBot();
-  state.saveState();
-  clearBoundary();
-  sendMessage('♻️ Persistent state cleared.');
-  await initializeBoundaries();
   try {
-    await bybit.cancelAllOrders();
+    sendMessage('♻️ Starting bot reset...');
+    
+    // 1. Stop all active processes
+    await stopBot(); // Reuses our improved stop function
+    
+    // 2. Clear all trading state
+    state.clearMainTrade();
+    state.clearHedgeTrade();
+    state.resetAll();
+    
+    // 3. Cancel all pending orders (with retry logic)
+    await retryOperation(
+      () => bybit.cancelAllOrders(),
+      3, // Retry attempts
+      1000 // Delay between retries
+    );
+    
+    // 4. Clear boundaries and technical indicators
+    clearBoundary();
+    boundaries = { top: null, bottom: null };
+    lastHedgeClosePrice = null;
+    
+    // 5. Reset all counters and timers
+    hedgeCooldownUntil = 0;
+    lastBoundaryUpdateTime = 0;
+    preKillStartTime = null;
+    lastKillResetTime = 0;
+    
+    // 6. Force garbage collection in Node.js
+    if (global.gc) {
+      global.gc();
+      sendMessage('🧹 Memory garbage collected');
+    }
+    
+    // 7. Verify reset completion
+    const verification = await verifyResetComplete();
+    if (!verification.success) {
+      throw new Error(verification.message);
+    }
+    
+    sendMessage('✅ Bot fully reset and ready for new session');
+    return true;
+    
   } catch (e) {
-    console.error('❌ Error canceling orders during reset:', e.message);
+    sendMessage(`‼️ Critical reset error: ${e.message}`);
+    console.error('Reset failed:', e);
+    
+    // Emergency fallback - force clear everything
+    state.forceReset();
+    boundaries = { top: null, bottom: null };
+    
+    throw e; // Re-throw for upstream handling
   }
 }
 
-function stopBot() {
-  stopPolling();
-  state.stopBot();
-  sendMessage('🛑 Bot stopped');
+// Helper functions for reset:
+
+async function verifyResetComplete() {
+  const checks = {
+    hasActiveTrade: state.getMainTrade() || state.getHedgeTrade(),
+    hasOpenOrders: await hasOpenOrders(),
+    hasBoundaries: boundaries.top !== null || boundaries.bottom !== null
+  };
+  
+  if (checks.hasActiveTrade) {
+    return { success: false, message: 'Active trades still exist' };
+  }
+  if (checks.hasOpenOrders) {
+    return { success: false, message: 'Open orders still exist' };
+  }
+  if (checks.hasBoundaries) {
+    return { success: false, message: 'Boundaries not cleared' };
+  }
+  
+  return { success: true, message: 'Reset verified clean' };
+}
+
+async function hasOpenOrders() {
+  try {
+    const orders = await bybit.client.futuresOpenOrders({
+      symbol: config.symbol
+    });
+    return orders.length > 0;
+  } catch (e) {
+    console.error('Order check failed:', e);
+    return true; // Assume orders exist if we can't check
+  }
+}
+
+async function retryOperation(operation, maxRetries, delayMs) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (e) {
+      if (i === maxRetries - 1) throw e;
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
 }
 
 
+
+async function stopBot() {
+  try {
+    // 1. First stop price polling
+    stopPolling();
+    
+    // 2. Cancel all open orders
+    await bybit.cancelAllOrders();
+    
+    // 3. Close any open positions if configured
+    if (config.closePositionsOnStop) {
+      await closeAllPositions();
+    }
+    
+    // 4. Update bot state
+    state.stopBot();
+    
+    // 5. Save final state
+    state.saveState();
+    saveBoundary({ trailingBoundary, boundaries });
+    
+    // 6. Notify
+    sendMessage('🛑 Bot stopped successfully');
+    
+    // 7. Force cleanup if needed
+    process.nextTick(() => {
+      if (state.isRunning()) {
+        state.forceStop();
+        sendMessage('⚠️ Had to force stop bot');
+      }
+    });
+  } catch (e) {
+    sendMessage(`‼️ Error during bot stop: ${e.message}`);
+    console.error('Stop error:', e);
+  } finally {
+    // Ensure we always stop
+    state.forceStop();
+  }
+}
+
+async function closeAllPositions() {
+  try {
+    sendMessage('⏳ Closing all open positions...');
+    
+    // Get all positions
+    const positions = await bybit.getOpenPositions();
+    
+    // Close each position
+    for (const pos of positions) {
+      if (Math.abs(pos.positionAmt) > 0) {
+        const side = pos.positionAmt > 0 ? 'SELL' : 'BUY';
+        await bybit.closePosition(pos.symbol, side, Math.abs(pos.positionAmt));
+      }
+    }
+    
+    sendMessage('✅ All positions closed');
+  } catch (e) {
+    sendMessage(`❌ Failed to close positions: ${e.message}`);
+    throw e;
+  }
+}
 
 async function initializeBoundaries() {
   const price = getCurrentPrice();
