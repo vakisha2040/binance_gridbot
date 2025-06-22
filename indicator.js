@@ -1,45 +1,67 @@
 const tulind = require('tulind');
 
-async function calculateEMA(prices, period = 21) {
-  try {
-    const results = await tulind.indicators.ema.indicator([prices], [period]);
-    return results[0];
-  } catch (err) {
-    console.error('EMA calculation error:', err);
-    return [];
-  }
+// Timeframe constants
+const TIMEFRAMES = {
+  SHORT: '15m',
+  MEDIUM: '1h',
+  LONG: '4h'
+};
+
+async function getMultiTimeframeData(symbol) {
+  const [short, medium, long] = await Promise.all([
+    bybit.getHistoricalPrices(symbol, TIMEFRAMES.SHORT, 100),
+    bybit.getHistoricalPrices(symbol, TIMEFRAMES.MEDIUM, 100),
+    bybit.getHistoricalPrices(symbol, TIMEFRAMES.LONG, 100)
+  ]);
+  return { short, medium, long };
 }
 
-async function calculateMACD(prices, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
-  try {
-    const results = await tulind.indicators.macd.indicator(
-      [prices],
-      [fastPeriod, slowPeriod, signalPeriod]
-    );
-    return {
-      macd: results[0],
-      signal: results[1],
-      histogram: results[2]
-    };
-  } catch (err) {
-    console.error('MACD calculation error:', err);
-    return { macd: [], signal: [], histogram: [] };
-  }
+async function calculateRSI(prices, period = 14) {
+  const results = await tulind.indicators.rsi.indicator([prices], [period]);
+  return results[0];
 }
 
-function getCurrentSignal(macdData) {
-  if (macdData.histogram.length < 2) return 'neutral';
+async function calculateBollingerBands(prices, period = 20, stddev = 2) {
+  const results = await tulind.indicators.bbands.indicator(
+    [prices],
+    [period, stddev]
+  );
+  return {
+    upper: results[0],
+    middle: results[1],
+    lower: results[2]
+  };
+}
+
+function getTrendConsensus(indicators) {
+  let score = 0;
   
-  const last = macdData.histogram[macdData.histogram.length - 1];
-  const prev = macdData.histogram[macdData.histogram.length - 2];
+  // MACD
+  if (indicators.macd.signal === 'bullish') score += 1;
+  if (indicators.macd.signal === 'bearish') score -= 1;
   
-  if (last > 0 && prev <= 0) return 'bullish';
-  if (last < 0 && prev >= 0) return 'bearish';
-  return 'neutral';
+  // Price vs EMA
+  if (indicators.price > indicators.ema) score += 0.5;
+  else score -= 0.5;
+  
+  // RSI
+  if (indicators.rsi > 60) score += 0.5;
+  else if (indicators.rsi < 40) score -= 0.5;
+  
+  // Bollinger Bands
+  if (indicators.price > indicators.bbands.upper) score -= 0.3; // Overbought
+  if (indicators.price < indicators.bbands.lower) score += 0.3; // Oversold
+  
+  return score > 0.5 ? 'bullish' : score < -0.5 ? 'bearish' : 'neutral';
 }
 
 module.exports = {
+  TIMEFRAMES,
+  getMultiTimeframeData,
   calculateEMA,
   calculateMACD,
-  getCurrentSignal
+  calculateRSI,
+  calculateBollingerBands,
+  getCurrentSignal,
+  getTrendConsensus
 };
