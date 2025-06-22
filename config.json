@@ -32,7 +32,13 @@
   "trailingThreshold": 50,
   "volatilityAdjustment": true,
   "levelBasedSpacing": true,
-  "minHedgeBoundaryMove": 20,
+  "minHedgeBoundaryMove": 20, 
+  "autoStart": {
+    "requireTrendConfirmation": true,
+    "minRsiForBuy": 30,
+    "maxRsiForSell": 70,
+    "highVolatilityThreshold": 200
+  },
   "debug": false,
   "boundaryUpdateInterval": 3000,
   "technicalIndicators": {
