@@ -15,6 +15,7 @@ const {
 const bybit = require('./binanceClient');
 const config = require('./config.json');
 const state = require('./state');
+const technical = require('./technical');
 
 const { clearBoundary, loadBoundary, saveBoundary } = require('./persistence');
 
@@ -91,6 +92,7 @@ async function analyzeMarketConditions() {
   };
 }
 
+
 async function initializeFreshBoundaries() {
   boundaryLocked = false;
   const price = getCurrentPrice();
@@ -99,82 +101,82 @@ async function initializeFreshBoundaries() {
     return;
   }
 
-  const analysis = await analyzeMarketConditions();
-  const { short, medium, long } = analysis;
+  const analysis = await technical.getMultiTimeframeAnalysis(bybit.exchange, config.symbol);
+  const trend = technical.getTrendDirection(analysis);
 
-  // Determine direction using multi-timeframe confirmation
-  let direction;
-  if (short.trend === 'bullish' && medium.trend === 'bullish') {
-    direction = 'Buy';
-  } else if (short.trend === 'bearish' && medium.trend === 'bearish') {
-    direction = 'Sell';
-  } else {
-    direction = config.initialTradeSide || 'Buy'; // Fallback
-  }
-
-  // Dynamic spacing based on volatility (BBands width)
-  const bbWidth = short.bbands.upper.slice(-1)[0] - short.bbands.lower.slice(-1)[0];
+  // Dynamic spacing based on Bollinger Band width
+  const bbWidth = analysis.short.bbands.slice(-1)[0].upper - 
+                 analysis.short.bbands.slice(-1)[0].lower;
   const spacing = Math.min(
     Math.max(bbWidth * 0.3, config.minSpacing),
     config.maxSpacing
   );
 
-  boundaries = {
-    top: direction === 'Buy' ? null : toPrecision(price + spacing),
-    bottom: direction === 'Sell' ? null : toPrecision(price - spacing)
-  };
+  // Set boundaries based on trend
+  if (trend.includes('bullish')) {
+    boundaries = {
+      top: toPrecision(price + spacing * 1.5), // Wider upside for bullish
+      bottom: toPrecision(price - spacing * 0.7) // Tighter downside
+    };
+  } 
+  else if (trend.includes('bearish')) {
+    boundaries = {
+      top: toPrecision(price + spacing * 0.7), // Tighter upside
+      bottom: toPrecision(price - spacing * 1.5) // Wider downside
+    };
+  } 
+  else {
+    boundaries = {
+      top: toPrecision(price + spacing),
+      bottom: toPrecision(price - spacing)
+    };
+  }
 
   saveBoundary({ trailingBoundary, boundaries });
   
   sendMessage(
-    `🎯 Multi-Timeframe Trade Zones Ready\n` +
+    `🎯 Smart Boundaries Set (${trend.toUpperCase()})\n` +
     `┌───────────────┬───────────────┐\n` +
     `│    BUY ZONE   │   SELL ZONE   │\n` +
-    `│  ≤ ${boundaries.bottom || 'N/A'} │  ≥ ${boundaries.top || 'N/A'} │\n` +
+    `│  ≤ ${boundaries.bottom} │  ≥ ${boundaries.top} │\n` +
     `└───────────────┴───────────────┘\n` +
-    `📊 Short-term: ${short.trend.toUpperCase()} (RSI: ${short.rsi.slice(-1)[0].toFixed(1)})\n` +
-    `📈 Medium-term: ${medium.trend.toUpperCase()}\n` +
-    `📉 Long-term: ${long.trend.toUpperCase()}\n` +
-    `BBands Width: ${bbWidth.toFixed(1)} | Spacing: ${spacing.toFixed(1)}`
+    `Dynamic Spacing: ${spacing.toFixed(2)} | BB Width: ${bbWidth.toFixed(2)}`
   );
 
   checkForNewTradeOpportunity(price, analysis);
 }
 
+
+
 async function checkForNewTradeOpportunity(price, forceAnalysis = null) {
   if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) return;
 
-  const analysis = forceAnalysis || await analyzeMarketConditions();
-  const { short, medium } = analysis;
-
-  // Strong confirmation required for counter-trend trades
-  const strongBullish = short.trend === 'bullish' && medium.trend === 'bullish';
-  const strongBearish = short.trend === 'bearish' && medium.trend === 'bearish';
+  const analysis = forceAnalysis || await technical.getMultiTimeframeAnalysis(bybit.exchange, config.symbol);
+  const trend = technical.getTrendDirection(analysis);
+  const lastRsi = analysis.short.rsi.slice(-1)[0];
+  const lastMacd = analysis.short.macd.slice(-1)[0].histogram;
 
   if (price >= boundaries.top) {
-    if (strongBullish || (config.allowCounterTrend && short.rsi.slice(-1)[0] < 60)) {
+    const confirmed = trend.includes('bullish') || 
+                     (lastRsi < 60 && lastMacd > 0);
+    
+    if (confirmed || config.ignoreIndicatorInBoundaryChecks) {
       openMainTrade("Buy", price);
     } else {
-      sendMessage(
-        `⚠️ Buy signal rejected - Trend mismatch\n` +
-        `Short: ${short.trend} | Medium: ${medium.trend}\n` +
-        `RSI: ${short.rsi.slice(-1)[0].toFixed(1)}`
-      );
+      sendMessage(`⚠️ Buy signal rejected - ${trend} trend/RSI ${lastRsi.toFixed(1)}`);
     }
   } 
   else if (price <= boundaries.bottom) {
-    if (strongBearish || (config.allowCounterTrend && short.rsi.slice(-1)[0] > 40)) {
+    const confirmed = trend.includes('bearish') || 
+                     (lastRsi > 40 && lastMacd < 0);
+    
+    if (confirmed || config.ignoreIndicatorInBoundaryChecks) {
       openMainTrade("Sell", price);
     } else {
-      sendMessage(
-        `⚠️ Sell signal rejected - Trend mismatch\n` +
-        `Short: ${short.trend} | Medium: ${medium.trend}\n` +
-        `RSI: ${short.rsi.slice(-1)[0].toFixed(1)}`
-      );
+      sendMessage(`⚠️ Sell signal rejected - ${trend} trend/RSI ${lastRsi.toFixed(1)}`);
     }
   }
 }
-
 
 async function startBot() {
   fetchPrecision(config);
@@ -201,37 +203,35 @@ async function startBot() {
     }
 
     // Get multi-timeframe analysis
-    const analysis = await analyzeMarketConditions();
+    const analysis = await technical.getMultiTimeframeAnalysis(bybit.exchange, config.symbol);
+    const trend = technical.getTrendDirection(analysis);
+    
     sendMessage(
       `📊 Market Analysis:\n` +
       `┌─────────────────┬───────────────┐\n` +
       `│ Timeframe       │ Trend         │\n` +
       `├─────────────────┼───────────────┤\n` +
-      `│ Short (15m)     │ ${analysis.short.trend.toUpperCase().padEnd(13)}│\n` +
-      `│ Medium (1h)     │ ${analysis.medium.trend.toUpperCase().padEnd(13)}│\n` +
-      `│ Long (4h)       │ ${analysis.long.trend.toUpperCase().padEnd(13)}│\n` +
+      `│ Short (15m)     │ ${trend.toUpperCase().padEnd(13)}│\n` +
+      `│ Medium (1h)     │ ${analysis.medium.price > analysis.medium.ema ? 'BULLISH' : 'BEARISH'}\n` +
+      `│ Long (4h)       │ ${analysis.long.price > analysis.long.ema ? 'BULLISH' : 'BEARISH'}\n` +
       `└─────────────────┴───────────────┘\n` +
       `RSI: ${analysis.short.rsi.slice(-1)[0].toFixed(1)} | ` +
-      `MACD Hist: ${analysis.short.macd.histogram.slice(-1)[0].toFixed(2)}`
+      `MACD Hist: ${analysis.short.macd.slice(-1)[0].histogram.toFixed(4)}`
     );
 
-    // Determine direction using trend consensus
+    // Determine direction
     let direction;
-    if (analysis.short.trend === 'bullish' && analysis.medium.trend === 'bullish') {
+    if (trend.includes('bullish')) {
       direction = 'Buy';
-      sendMessage(`✅ Strong bullish consensus - Starting with Buy`);
+      sendMessage(`✅ Strong bullish trend detected - Starting with Buy`);
     } 
-    else if (analysis.short.trend === 'bearish' && analysis.medium.trend === 'bearish') {
+    else if (trend.includes('bearish')) {
       direction = 'Sell';
-      sendMessage(`✅ Strong bearish consensus - Starting with Sell`);
+      sendMessage(`✅ Strong bearish trend detected - Starting with Sell`);
     }
     else {
-      // Neutral market - use config default with caution
       direction = config.initialTradeSide || 'Buy';
-      sendMessage(
-        `⚠️ No clear trend - Using default ${direction} position\n` +
-        `Set 'initialTradeSide' in config.json to override`
-      );
+      sendMessage(`⚠️ No clear trend - Using default ${direction} position`);
     }
 
     await openMainTrade(direction, price);
