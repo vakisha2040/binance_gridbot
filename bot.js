@@ -93,8 +93,8 @@ async function checkForNewTradeOpportunity(price) {
   }
   else {
   
-  const initialSide = config.initialTradeSide || 'Buy';
-    await openMainTrade(initialSide, price);
+//  const initialSide = config.initialTradeSide || 'Buy';
+  //  await openMainTrade(initialSide, price);
 
   }
 }
