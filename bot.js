@@ -129,17 +129,17 @@ async function startBot() {
 const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
 
   if (signal === 'BUY') {
-    openMainTrade("Buy", price);
+  //  openMainTrade("Buy", price);
     sendMessage(` 🕐 Signal is BUY, Placing Buy order...`);
   } 
   else if (signal === 'SELL') {
-    openMainTrade("Sell", price);
+  //  openMainTrade("Sell", price);
     sendMessage(` 🕐 Signal is SELL, Placing sell order...`);
   } 
   else {
   
     const initialSide = config.initialTradeSide || 'Buy';
-    await openMainTrade(initialSide, price);
+  //  await openMainTrade(initialSide, price);
 
   }
 
