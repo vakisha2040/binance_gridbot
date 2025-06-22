@@ -141,10 +141,11 @@ async function monitorPrice() {
     const hedgeTrade = state.getHedgeTrade();
     const inCooldown = Date.now() < hedgeCooldownUntil;
 
-    // Only check boundaries if we have valid ones
+    // Only check boundaries if we have valid ones and not in cooldown
     const boundariesValid = (boundaries.top !== null || boundaries.bottom !== null);
+    const shouldCheckBoundaries = boundariesValid && !inCooldown;
 
-    if (!mainTrade && !hedgeTrade && !hedgeOpeningInProgress && !inCooldown && boundariesValid) {
+    if (!mainTrade && !hedgeTrade && !hedgeOpeningInProgress && shouldCheckBoundaries) {
       if (boundaries.bottom && price <= boundaries.bottom) {
         hedgeOpeningInProgress = true;
         await openHedgeTrade('Buy', price);
@@ -156,6 +157,7 @@ async function monitorPrice() {
         hedgeOpeningInProgress = false;
       }
     }
+    
 
     if (mainTrade) {
       await handleMainTrade(price);
@@ -450,19 +452,31 @@ async function closeHedgeTrade(price, manual = false) {
     if (!hedgeTrade) return;
 
     await bybit.closeHedgeTrade(hedgeTrade.side, config.orderSize);
+    sendMessage(`❌ Hedge trade closed: ${hedgeTrade.side} ${config.orderSize} (${hedgeTrade.side === 'Buy' ? 'LONG' : 'SHORT'})`);
     sendMessage(`❌ Hedge trade closed at ${price}${manual ? ' (manual)' : ''}`);
 
+    const wasKilled = hedgeTrade.killTriggered;
     lastHedgeClosePrice = price;
     state.clearHedgeTrade();
 
-    // Add cooldown period after kill
-    if (hedgeTrade.killTriggered) {
+    if (wasKilled) {
       hedgeCooldownUntil = Date.now() + (config.hedgeCooldownPeriod || 30000);
       sendMessage(`⏳ Hedge kill executed - cooldown active for ${config.hedgeCooldownPeriod || 30} seconds`);
+      
+      // Clear boundaries immediately
       boundaries.top = null;
       boundaries.bottom = null;
       persistBoundaries();
+      
+      // Schedule boundary setup after cooldown
+      setTimeout(async () => {
+        if (!state.getHedgeTrade() && state.getMainTrade()) {
+          sendMessage(`🔄 Cooldown expired - setting up new boundary`);
+          await setImmediateHedgeBoundary(getCurrentPrice(), true);
+        }
+      }, (config.hedgeCooldownPeriod || 30000) + 1000); // Extra 1s buffer
     } else {
+      // Normal close - set boundary immediately
       setImmediateHedgeBoundary(price);
     }
     
@@ -471,6 +485,8 @@ async function closeHedgeTrade(price, manual = false) {
     sendMessage(`❌ Failed to close hedge trade: ${e.message}`);
   }
 }
+
+
 
 function calculateTrailingHedgeOpenPrice(
   lastClose,
