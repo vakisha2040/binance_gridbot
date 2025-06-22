@@ -66,11 +66,6 @@ async function initializeFreshBoundaries() {
 
 async function checkForNewTradeOpportunity(price) {
   if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) return;
-const price = getCurrentPrice();
-  if (!price) {
-    sendMessage('⚠️ Price unavailable - boundary reset delayed');
-    return;
-  }
   
   const signal = await analyze(); // 'BUY', 'SELL', or 'WAIT'
 
