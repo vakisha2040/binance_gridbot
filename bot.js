@@ -162,7 +162,7 @@ async function startBot() {
   else {
   
     sendMessage(` 🕐 Signal is WAIT, retrying in 60s...`);
-    setTimeout(checkForNewTradeOpportunity, RETRY_DELAY);
+  //  setTimeout(checkForNewTradeOpportunity, RETRY_DELAY);
   }
   
   
