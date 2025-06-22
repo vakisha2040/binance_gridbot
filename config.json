@@ -36,5 +36,5 @@
   "boundaryUpdateInterval": 30000,
   "boundaryTolerance": 1.0,
   "trailingThreshold": 5,
-  "emergencyThresholdMultiplier": 2,
+  "emergencyThresholdMultiplier": 2
 }
