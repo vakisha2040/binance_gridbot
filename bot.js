@@ -47,19 +47,19 @@ function getGridSpacing(level) {
   return config.gridSpacing;
 }
 
+
 async function initializeFreshBoundaries() {
+  boundaryLocked = false;   
   const price = getCurrentPrice();
   if (!price) {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
     return;
   }
-
   const spacing = config.tradeEntrySpacing || 100;
   boundaries = {
     top: toPrecision(price + spacing),
     bottom: toPrecision(price - spacing)
   };
-
   saveBoundary({ trailingBoundary, boundaries });
   sendMessage(
     `🎯 New Trade Zones Ready\n` +
@@ -74,7 +74,7 @@ async function initializeFreshBoundaries() {
 }
 
 function checkForNewTradeOpportunity(price) {
-  if (state.getAnyActiveTrade()) return;
+  if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) return;
 
   if (price >= boundaries.top) {
     openMainTrade("Buy", price);
@@ -285,16 +285,25 @@ async function monitorPrice() {
 
       
       // 4. NEW TRADE PREPARATION ===========================================
-      if (!mainTrade && !hedgeTrade && !inCooldown) {
-        // Check if boundaries need initialization
-        if (!boundaries.top && !boundaries.bottom) {
-          await initializeFreshBoundaries();
-        } 
-        // Check for new trade opportunities
-        else {
-          checkForNewTradeOpportunity(price);
-        }
-      }
+  
+if (!mainTrade && !hedgeTrade) {
+  // 1. Handle cooldown first
+  if (inCooldown) {
+    if (now >= hedgeCooldownUntil - 5000) {
+      sendMessage(`⏳ Cooldown ends in ${Math.ceil((hedgeCooldownUntil - now)/1000)}s`);
+    }
+  } 
+  // 2. Prepare new trading environment
+  else {
+    if (!boundaries.top && !boundaries.bottom) {
+      await initializeFreshBoundaries();
+    } else {
+      checkForNewTradeOpportunity(price);
+    }
+  }
+}
+
+      
 
       // 5. COOLDOWN MANAGEMENT ===============================================
       if (inCooldown && now >= hedgeCooldownUntil - 1000) {
@@ -407,6 +416,7 @@ async function closeMainTrade(price, manual = false) {
     if (state.getHedgeTrade()) {
       promoteHedgeToMain();
     } else {
+      hedgeCooldownUntil = 0;
       await initializeFreshBoundaries(); // Critical reset
     }
   } catch (e) {
@@ -448,6 +458,7 @@ function promoteHedgeToMain() {
   state.setMainTrade(hedge);
   state.clearHedgeTrade();
   lastHedgeClosePrice = hedge.entry;
+  hedgeCooldownUntil = 0;
   boundaryLocked = false;
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
   initializeHedgePromotionBoundary();
