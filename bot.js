@@ -116,16 +116,16 @@ async function monitorPrice() {
     }
 
     // 🟢 STRICT hedge re-entry only on boundary cross
-    if (!state.getMainTrade() && !state.getHedgeTrade()) {
-      if (boundaries.bottom && price <= boundaries.bottom) {
-        await openHedgeTrade('Buy', price);
-      } else if (boundaries.top && price >= boundaries.top) {
-        await openHedgeTrade('Sell', price);
-      }
-      await delay(1000);
-      continue;
-    }
-
+if (!state.getMainTrade() && !state.getHedgeTrade() && !hedgeOpeningInProgress) {
+  if ((boundaries.bottom && price <= boundaries.bottom) || (boundaries.top && price >= boundaries.top)) {
+    hedgeOpeningInProgress = true;
+    const side = price <= boundaries.bottom ? 'Buy' : 'Sell';
+    await openHedgeTrade(side, price);
+    hedgeOpeningInProgress = false;
+  }
+  await delay(1000);
+  continue;
+}
     // 🔁 Main Trade Logic
     if (state.getMainTrade()) {
       await handleMainTrade(price);
@@ -268,7 +268,8 @@ function promoteHedgeToMain() {
   hedge.openTimestamp = null;         // 🔄 Reset kill tracking timer
   state.setMainTrade(hedge);
   state.clearHedgeTrade();
-  boundaryLocked = true;
+  lastHedgeClosePrice = hedge.entry; // ← Let trailing logic work
+boundaryLocked = false;            // ← Allow it to update boundary again
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
   initializeHedgePromotionBoundary();
 } 
@@ -473,36 +474,40 @@ function calculateTrailingHedgeOpenPrice(
 function setImmediateHedgeBoundary(price, force = false) {
   const now = Date.now();
   const throttle = config.hedgeBoundaryUpdateInterval || 30000;
+  const minMove = config.minHedgeBoundaryMove || 20;
 
-if (!force && now - lastBoundaryUpdateTime < throttle)
-  return;
-lastBoundaryUpdateTime = now;
+  if (!force && boundaryLocked) return;
+  if (!force && now - lastBoundaryUpdateTime < throttle) return;
+  lastBoundaryUpdateTime = now;
 
-const mainTrade = state.getMainTrade();
-  if (!mainTrade) 
-    return;
+  const mainTrade = state.getMainTrade();
+  if (!mainTrade) return;
 
-const trailingBoundary = config.trailingBoundary || 100; 
-const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 150; 
-const lastClose = lastHedgeClosePrice || price;
+  const trailingBoundary = config.trailingBoundary || 100;
+  const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 150;
+  const lastClose = lastHedgeClosePrice || price;
 
-const newBoundary = calculateTrailingHedgeOpenPrice( 
-  lastClose,
-price, 
-config.tradeEntrySpacing, 
-  trailingBoundary, 
-maxHedgeTrailDistance, 
-mainTrade.side 
-);
+  const newBoundary = calculateTrailingHedgeOpenPrice(
+    lastClose,
+    price,
+    config.tradeEntrySpacing,
+    trailingBoundary,
+    maxHedgeTrailDistance,
+    mainTrade.side
+  );
 
-const distance = Math.abs(price - lastClose);
+  const distance = Math.abs(price - lastClose);
+  const moveEnough = (prev, next) => Math.abs(prev - next) >= minMove;
 
-if (mainTrade.side === 'Buy') { 
-  if (!boundaries.bottom || newBoundary > boundaries.bottom) { 
-  boundaries.bottom = newBoundary; 
-    boundaries.top = null;
-persistBoundaries();
-sendMessage(
+  if (mainTrade.side === 'Buy') {
+    if (
+      !boundaries.bottom || 
+      (newBoundary > boundaries.bottom && moveEnough(boundaries.bottom, newBoundary))
+    ) {
+      boundaries.bottom = newBoundary;
+      boundaries.top = null;
+      persistBoundaries();
+      sendMessage(
         `🟦 New bottom hedge boundary set\n` +
         `🔹 Main trade side: Buy\n` +
         `📉 Last hedge close: ${lastClose}\n` +
@@ -510,10 +515,18 @@ sendMessage(
         `📏 Distance moved: ${toPrecision(distance)}\n` +
         `🎯 New bottom boundary: ${boundaries.bottom}`
       );
-} 
-} else if (mainTrade.side === 'Sell') { if (!boundaries.top || newBoundary < boundaries.top) {
-  boundaries.top = newBoundary; boundaries.bottom = null; persistBoundaries();
-sendMessage(
+    } else {
+      sendMessage(`↩️ Bottom boundary NOT updated (would loosen or insufficient move).`);
+    }
+  } else if (mainTrade.side === 'Sell') {
+    if (
+      !boundaries.top || 
+      (newBoundary < boundaries.top && moveEnough(boundaries.top, newBoundary))
+    ) {
+      boundaries.top = newBoundary;
+      boundaries.bottom = null;
+      persistBoundaries();
+      sendMessage(
         `🟥 New top hedge boundary set\n` +
         `🔸 Main trade side: Sell\n` +
         `📉 Last hedge close: ${lastClose}\n` +
@@ -521,12 +534,10 @@ sendMessage(
         `📏 Distance moved: ${toPrecision(distance)}\n` +
         `🎯 New top boundary: ${boundaries.top}`
       );
-} else {
-      sendMessage(`↩️ Top boundary NOT updated (would loosen).`);
+    } else {
+      sendMessage(`↩️ Top boundary NOT updated (would loosen or insufficient move).`);
     }
-
-  
-}
+  }
 }
 
 
