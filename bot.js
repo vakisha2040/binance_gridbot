@@ -26,7 +26,9 @@ function setSendMessage(fn) {
 
 // -- Load boundary state on startup
 let { trailingBoundary, boundaries } = loadBoundary();
-if (!boundaries) boundaries = { top: null, bottom: null };
+if (!boundaries){
+  boundaries = { top: null, bottom: null };
+}
 let lastHedgeClosePrice = null;
 let hedgeCooldownUntil = 0;
 let sentReadyTrigger = false;
@@ -44,6 +46,44 @@ function getGridSpacing(level) {
   if (level === 0) return config.zeroLevelSpacing;
   return config.gridSpacing;
 }
+
+async function initializeFreshBoundaries() {
+  const price = getCurrentPrice();
+  if (!price) {
+    sendMessage('⚠️ Price unavailable - boundary reset delayed');
+    return;
+  }
+
+  const spacing = config.tradeEntrySpacing || 100;
+  boundaries = {
+    top: toPrecision(price + spacing),
+    bottom: toPrecision(price - spacing)
+  };
+
+  saveBoundary({ trailingBoundary, boundaries });
+  sendMessage(
+    `🎯 New Trade Zones Ready\n` +
+    `┌───────────────┬───────────────┐\n` +
+    `│    BUY ZONE   │   SELL ZONE   │\n` +
+    `│  ≤ ${boundaries.bottom} │  ≥ ${boundaries.top} │\n` +
+    `└───────────────┴───────────────┘\n` +
+    `Current Price: ${price}`
+  );
+
+  checkForNewTradeOpportunity(price); // Immediate check
+}
+
+function checkForNewTradeOpportunity(price) {
+  if (state.getAnyActiveTrade()) return;
+
+  if (price >= boundaries.top) {
+    openMainTrade("Buy", price);
+  } 
+  else if (price <= boundaries.bottom) {
+    openMainTrade("Sell", price);
+  }
+}
+
 
 async function startBot() {
   fetchPrecision(config);
@@ -243,12 +283,25 @@ async function monitorPrice() {
         }
       }
 
-      // 4. COOLDOWN MANAGEMENT ===============================================
+      
+      // 4. NEW TRADE PREPARATION ===========================================
+      if (!mainTrade && !hedgeTrade && !inCooldown) {
+        // Check if boundaries need initialization
+        if (!boundaries.top && !boundaries.bottom) {
+          await initializeFreshBoundaries();
+        } 
+        // Check for new trade opportunities
+        else {
+          checkForNewTradeOpportunity(price);
+        }
+      }
+
+      // 5. COOLDOWN MANAGEMENT ===============================================
       if (inCooldown && now >= hedgeCooldownUntil - 1000) {
         sendMessage("🔄 Hedge cooldown period ending soon");
       }
 
-      // 5. PERIODIC BOUNDARY CHECK ===========================================
+      // 6. PERIODIC BOUNDARY CHECK ===========================================
       if (now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL) {
         if (mainTrade && !hedgeTrade && !boundaryLocked) {
           setImmediateHedgeBoundary(price);
@@ -345,19 +398,24 @@ async function closeMainTrade(price, manual = false) {
   try {
     const mainTrade = state.getMainTrade();
     if (!mainTrade) return;
+
     await bybit.closeMainTrade(mainTrade.side, config.orderSize);
-    sendMessage(`❌ Main trade closed at ${price}${manual ? " (manual)" : ""}`);
+    sendMessage(`✅ ${mainTrade.side} trade closed at ${price}`);
+
     state.clearMainTrade();
     
     if (state.getHedgeTrade()) {
       promoteHedgeToMain();
     } else {
-      await initializeBoundaries();
+      await initializeFreshBoundaries(); // Critical reset
     }
   } catch (e) {
-    sendMessage(`❌ Failed to close main trade: ${e.message}`);
+    sendMessage(`❌ Close failed: ${e.message}`);
   }
 }
+
+
+
 
 function initializeHedgePromotionBoundary() {
   const mainTrade = state.getMainTrade();
