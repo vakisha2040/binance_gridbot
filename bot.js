@@ -55,10 +55,22 @@ async function startBot() {
   const hedgeTrade = state.getHedgeTrade();
   if (mainTrade) {
     sendMessage(`📦 Resuming main trade: ${mainTrade.side} from ${mainTrade.entry} at level ${mainTrade.level}`);
-  if (!lastHedgeClosePrice) lastHedgeClosePrice = mainTrade.entry; // 👈 force baseline for trailing
     await initializeHedgePromotionBoundary();
   } else {
     await initializeBoundaries();
+
+    const price = getCurrentPrice();
+    if (!price) {
+      sendMessage("⚠️ Unable to fetch price for main trade on startup.");
+      return;
+    }
+
+    // 🚀 Force open main trade if price is outside boundary on startup
+    if (price >= boundaries.top) {
+      await openMainTrade("Buy", price);
+    } else if (price <= boundaries.bottom) {
+      await openMainTrade("Sell", price);
+    }
   }
   if (hedgeTrade) {
     sendMessage(`🛡️ Resuming hedge trade: ${hedgeTrade.side} from ${hedgeTrade.entry} at level ${hedgeTrade.level}`);
