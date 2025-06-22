@@ -266,9 +266,9 @@ async function stopBot() {
     await bybit.cancelAllOrders();
     
     // 3. Close any open positions if configured
-    if (config.closePositionsOnStop) {
-      await closeAllPositions();
-    }
+  //  if (config.closePositionsOnStop) {
+     // await closeAllPositions();
+  //  }
     
     // 4. Update bot state
     state.stopBot();
