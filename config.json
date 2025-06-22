@@ -26,8 +26,7 @@
   "hedgeKillResetMultiplier": 1.11,
   "testnet": false,
   "closePositionsOnStop": true,
-  "trailingThreshold": 50,
-  "emergencyThresholdMultiplier": 2,
+  "trailingThreshold": 0.5,
   "hedgeOpenRetryDelay": 2000,
   "monitorInterval": 1000,
   "trailingThreshold": 50,
@@ -36,7 +35,7 @@
   "minHedgeBoundaryMove": 0.20,
   "debug": false,
   "boundaryUpdateInterval": 3000,
-  "boundaryTolerance": 1.0,
-  "trailingThreshold": 5,
-  "emergencyThresholdMultiplier": 2
+  "boundaryTolerance": 0.1,
+  "trailingThreshold": 0.5,
+  "emergencyThresholdMultiplier": 0.2
 }
