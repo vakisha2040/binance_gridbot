@@ -14,7 +14,7 @@ const technicalindicators = require('technicalindicators');
 const config = require('./config.json');
 
 const SYMBOL = config.symbol || 'SOLUSDT';
-const INTERVAL = config.analysisInterval || '5m'; // e.g. 1m, 5m, 15m, 1h, etc.
+const INTERVAL = config.analysisInterval || '3m'; // e.g. 1m, 5m, 15m, 1h, etc.
 const CANDLE_LIMIT = config.analysisCandles || 100;
 
 // If you use API keys, pass here; for public OHLCV, no need
