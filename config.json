@@ -35,7 +35,7 @@
   "minHedgeBoundaryMove": 0.20,
   "debug": false,
   "boundaryUpdateInterval": 3000,
-  "boundaryTolerance": 0.001,
+  "boundaryTolerance": 0.1,
   "trailingThreshold": 0.2,
   "emergencyThresholdMultiplier": 0.02
 }
