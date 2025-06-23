@@ -30,12 +30,12 @@
   "hedgeOpenRetryDelay": 2000,
   "monitorInterval": 1000,
   "trailingThreshold": 50,
-  "volatilityAdjustment": true,
-  "levelBasedSpacing": true,
+  "volatilityAdjustment": false,
+  "levelBasedSpacing": false,
   "minHedgeBoundaryMove": 0.20,
   "debug": false,
   "boundaryUpdateInterval": 3000,
   "boundaryTolerance": 0.1,
-  "trailingThreshold": 0.9,
+  "trailingThreshold": 0.5,
   "emergencyThresholdMultiplier": 0.02
 }
