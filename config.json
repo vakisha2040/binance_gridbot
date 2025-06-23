@@ -36,6 +36,6 @@
   "debug": false,
   "boundaryUpdateInterval": 3000,
   "boundaryTolerance": 0.1,
-  "trailingThreshold": 0.2,
+  "trailingThreshold": 0.9,
   "emergencyThresholdMultiplier": 0.02
 }
