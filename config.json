@@ -9,8 +9,9 @@
   "initialTradeSide": "Buy",
   "startPrice": null,
   "tradeEntrySpacing": 1.01,
-  "trailingBoundary": 1.01,
-  "maxHedgeTrailDistance": 1.01, 
+  "trailingBoundary": 0.8,
+  "boundaryStickyness": 0.3,
+  "maxHedgeTrailDistance": 0.8, 
   "gridSpacing": 0.9,
   "zeroLevelSpacing":1.01,
   "newBoundarySpacing": 1.01,
@@ -34,7 +35,7 @@
   "debug": false,
   "boundaryUpdateInterval": 3000,
   "boundaryTolerance": 0.1,
-  "trailingThreshold": 0.9,
+  "trailingThreshold": 0.8,
     "oneWayTrailing": true,
   "emergencyThresholdMultiplier": 0.02
 }
