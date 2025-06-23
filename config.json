@@ -31,7 +31,6 @@
   "monitorInterval": 1000,
   "volatilityAdjustment": false,
   "levelBasedSpacing": false,
-  "minHedgeBoundaryMove": 0.9,
   "debug": false,
   "boundaryUpdateInterval": 3000,
   "boundaryTolerance": 0.1,
