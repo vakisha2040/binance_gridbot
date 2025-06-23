@@ -92,7 +92,7 @@ async function checkForNewTradeOpportunity(price) {
     openMainTrade("Sell", price);
   }
   else {
-  
+  console.log(signal)
 //  const initialSide = config.initialTradeSide || 'Buy';
   //  await openMainTrade(initialSide, price);
 
