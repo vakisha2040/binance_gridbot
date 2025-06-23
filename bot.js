@@ -410,6 +410,7 @@ async function openMainTrade(side, entryPrice) {
       stopLoss: null,
       breakthroughPrice: null,
     });
+    lastBoundaryUpdateTime = 0;
     let extremeBoundary = null; // Tracks the most aggressive boundary level
     boundaryLocked = true;
     sendMessage(`📈 Main trade opened: ${side} at ${entryPrice}`);
@@ -679,7 +680,9 @@ async function closeHedgeTrade(price, manual = false) {
     const wasKilled = hedgeTrade.killTriggered;
     lastHedgeClosePrice = price;
     state.clearHedgeTrade();
-
+    lastBoundaryUpdateTime = 0;
+    let extremeBoundary = null; // Tracks the most aggressive boundary level
+    boundaryLocked = false;
     if (wasKilled) {
       hedgeCooldownUntil = Date.now() + (config.hedgeCooldownPeriod || 30000);
       sendMessage(`⏳ Hedge kill executed - cooldown active for ${config.hedgeCooldownPeriod || 30} seconds`);
@@ -700,8 +703,7 @@ async function closeHedgeTrade(price, manual = false) {
       // Normal close - set boundary immediately
       setImmediateHedgeBoundary(price);
     }
-    let extremeBoundary = null; // Tracks the most aggressive boundary level
-    boundaryLocked = false;
+
   } catch (e) {
     sendMessage(`❌ Failed to close hedge trade: ${e.message}`);
   }
@@ -969,24 +971,31 @@ async function setImmediateHedgeBoundary(price, force = false) {
 
     // Throttle boundary updates
     const now = Date.now();
-    if (!force && now - lastBoundaryUpdateTime < config.hedgeBoundaryUpdateInterval) {
+    if (!force && now - lastBoundaryUpdateTime < BOUNDARY_UPDATE_COOLDOWN) {
         return;
     }
-    lastBoundaryUpdateTime = now;
 
-    // Calculate proposed boundary
-    const lastClose = lastHedgeClosePrice || mainTrade.entry;
+    // Get current boundary value
+    const currentBoundary = mainTrade.side === 'Buy' 
+        ? boundaries.bottom 
+        : boundaries.top;
+
+    // Check minimum move threshold (configurable, default $0.10)
+    const minMove = config.boundaryStickyness || 0.10;
+    if (currentBoundary && Math.abs(price - currentBoundary) < minMove) {
+        return;
+    }
+
+    // Calculate proposed new boundary
     const proposedBoundary = calculateTrailingHedgeOpenPrice(
-        lastClose,
+        currentBoundary || lastHedgeClosePrice || mainTrade.entry,
         price,
         mainTrade.side
     );
 
-    // Apply one-way trailing logic
+    // Apply one-way trailing
     let boundaryUpdated = false;
-    
     if (mainTrade.side === 'Buy') {
-        // For Buy trades: boundary only moves UP (higher values)
         if (!extremeBoundary || proposedBoundary > extremeBoundary) {
             extremeBoundary = proposedBoundary;
             boundaries.bottom = extremeBoundary;
@@ -994,7 +1003,6 @@ async function setImmediateHedgeBoundary(price, force = false) {
             boundaryUpdated = true;
         }
     } else {
-        // For Sell trades: boundary only moves DOWN (lower values)
         if (!extremeBoundary || proposedBoundary < extremeBoundary) {
             extremeBoundary = proposedBoundary;
             boundaries.top = extremeBoundary;
@@ -1003,46 +1011,50 @@ async function setImmediateHedgeBoundary(price, force = false) {
         }
     }
 
-    // Only save and notify if boundary actually changed
+    // Save and notify if updated
     if (boundaryUpdated) {
+        lastBoundaryUpdateTime = now;
         saveBoundary({ trailingBoundary, boundaries });
-        
-        const direction = mainTrade.side === 'Buy' ? 'up' : 'down';
+
         sendMessage(
-            `🔄 One-way boundary trailed ${direction}\n` +
-            `🟥 Type: ${mainTrade.side} Main Trade\n` +
-            `📉 Last close: ${toPrecision(lastClose)}\n` +
-            `📈 Current price: ${toPrecision(price)}\n` +
-            `🎯 New boundary: ${toPrecision(extremeBoundary)}\n` +
-            `🚨 Mode: ${force ? 'FORCED' : 'auto'}`
+            `🔄 Boundary Updated (${mainTrade.side} Main Trade)\n` +
+            `🟥  Direction: ${mainTrade.side === 'Buy' ? 'UP' : 'DOWN'}\n` +
+            `📉  Previous: ${currentBoundary?.toFixed(3) || 'None'}\n` +
+            `🎯 New: ${extremeBoundary.toFixed(3)}\n` +
+            `📈 Price: ${price.toFixed(3)}\n` +
+            `📏 Next update in ${BOUNDARY_UPDATE_COOLDOWN/1000}s`
         );
     }
 }
 
-function calculateTrailingHedgeOpenPrice(lastClose, currentPrice, mainTradeSide) {
-    const distance = Math.abs(currentPrice - lastClose);
+
+
+
+function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainTradeSide) {
+    const distance = Math.abs(currentPrice - lastReferencePrice);
     let newBoundary;
 
-    // Use default spacing if within threshold
-    if (distance <= config.trailingBoundary) {
-        newBoundary = mainTradeSide === 'Buy'
-            ? lastClose - config.newBoundarySpacing
-            : lastClose + config.newBoundarySpacing;
-    } 
-    // Apply trailing for significant moves
-    else {
-        const rawAdjustment = 0.5 * (currentPrice - lastClose);
-        const adjustedMove = Math.min(
-            Math.abs(rawAdjustment),
-            config.maxHedgeTrailDistance
+    // Default grid spacing for small moves
+    if (distance <= (config.trailingThreshold || 0.4)) {
+        return toPrecision(
+            mainTradeSide === 'Buy'
+                ? lastReferencePrice - config.newBoundarySpacing
+                : lastReferencePrice + config.newBoundarySpacing,
+            config.pricePrecision
         );
-        
-        newBoundary = mainTradeSide === 'Buy'
-            ? lastClose + adjustedMove // Moves up for Buy trades
-            : lastClose - adjustedMove; // Moves down for Sell trades
     }
 
-    return toPrecision(newBoundary, config.pricePrecision);
+    // Trailing adjustment for significant moves
+    const rawAdjustment = 0.5 * (currentPrice - lastReferencePrice);
+    const cappedAdjustment = Math.sign(rawAdjustment) * Math.min(
+        Math.abs(rawAdjustment),
+        config.maxHedgeTrailDistance || 0.5
+    );
+
+    return toPrecision(
+        lastReferencePrice + cappedAdjustment,
+        config.pricePrecision
+    );
 }
 
 
