@@ -96,7 +96,7 @@ module.exports = {
 
 
 
- Run every 2 seconds
+// Run every 2 seconds
 setInterval(async () => {
   try {
     const signal = await analyze();
