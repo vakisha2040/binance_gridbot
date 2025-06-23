@@ -1,7 +1,7 @@
 {
   "symbol": "SOLUSDT",
   "tickSize": 0.001,
-  "pricePrecision": 2,
+  "pricePrecision": 3,
   "stepSize": 0.001,
   "leverage": 70,
   "orderSize": 0.55,
@@ -35,7 +35,7 @@
   "minHedgeBoundaryMove": 0.20,
   "debug": false,
   "boundaryUpdateInterval": 3000,
-  "boundaryTolerance": 0.1,
+  "boundaryTolerance": 0.001,
   "trailingThreshold": 0.5,
   "emergencyThresholdMultiplier": 0.2
 }
