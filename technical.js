@@ -1,69 +1,87 @@
 const axios = require('axios');
 const { EMA, MACD } = require('technicalindicators');
 const config = require('./config.json');
+
 const SYMBOL = config.symbol;
 const LIMIT = 100;
 
 async function fetchCloses(interval) {
   const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${SYMBOL.toUpperCase()}&interval=${interval}&limit=${LIMIT}`;
   const res = await axios.get(url);
-  return res.data.map(c => parseFloat(c[4])); // close prices
+  return res.data.map(c => parseFloat(c[4])); // close prices only
 }
 
-function getSignal(closes) {
-  if (closes.length < 26) return 'WAIT';
+function getEmaSignal(closes, fastPeriod = 3, slowPeriod = 9) {
+  if (closes.length < slowPeriod) return null;
 
-  const ema12 = EMA.calculate({ period: 12, values: closes });
-  const ema26 = EMA.calculate({ period: 26, values: closes });
+  const emaFast = EMA.calculate({ period: fastPeriod, values: closes });
+  const emaSlow = EMA.calculate({ period: slowPeriod, values: closes });
+
+  const latestFast = emaFast[emaFast.length - 1];
+  const latestSlow = emaSlow[emaSlow.length - 1];
+
+  if (latestFast > latestSlow) return 'BULLISH';
+  if (latestFast < latestSlow) return 'BEARISH';
+  return 'NEUTRAL';
+}
+
+function getMacdSignal(closes) {
+  if (closes.length < 26) return null;
+
   const macd = MACD.calculate({
     values: closes,
-    fastPeriod: 12,
-    slowPeriod: 26,
-    signalPeriod: 9,
+    fastPeriod: 6,
+    slowPeriod: 13,
+    signalPeriod: 5,
     SimpleMAOscillator: false,
     SimpleMASignal: false,
   });
 
-  const latestEma12 = ema12[ema12.length - 1];
-  const latestEma26 = ema26[ema26.length - 1];
-  const latestMacd = macd[macd.length - 1];
+  const latest = macd[macd.length - 1];
+  if (!latest) return null;
 
-  if (!latestMacd) return 'WAIT';
-
-  if (latestEma12 > latestEma26 && latestMacd.MACD > latestMacd.signal) return 'BUY';
-  if (latestEma12 < latestEma26 && latestMacd.MACD < latestMacd.signal) return 'SELL';
-
-  return 'WAIT';
+  if (latest.MACD > latest.signal) return 'BULLISH';
+  if (latest.MACD < latest.signal) return 'BEARISH';
+  return 'NEUTRAL';
 }
 
 async function analyze() {
-  const [closes3m, closes5m, closes15m] = await Promise.all([
+  const [closes1m, closes3m, closes5m] = await Promise.all([
+    fetchCloses('1m'),
     fetchCloses('3m'),
     fetchCloses('5m'),
-    fetchCloses('15m')
   ]);
 
-  const signals = [
-    getSignal(closes3m),
-    getSignal(closes5m),
-    getSignal(closes15m),
-  ];
+  const emaSignal1m = getEmaSignal(closes1m);
+  const emaSignal3m = getEmaSignal(closes3m);
+  const macdSignal5m = getMacdSignal(closes5m);
 
-  const count = { BUY: 0, SELL: 0, WAIT: 0 };
-  for (let s of signals) count[s]++;
+  console.log(`📊 1m EMA: ${emaSignal1m}, 3m EMA: ${emaSignal3m}, 5m MACD: ${macdSignal5m}`);
 
-  console.log(`3m: ${signals[0]}, 5m: ${signals[1]}, 15m: ${signals[2]}`);
+  // Only confirm trade if ALL agree
+  if (
+    emaSignal1m === 'BULLISH' &&
+    emaSignal3m === 'BULLISH' &&
+    macdSignal5m === 'BULLISH'
+  ) return 'BUY';
 
-  if (count.BUY >= 2) return 'BUY';
-  if (count.SELL >= 2) return 'SELL';
+  if (
+    emaSignal1m === 'BEARISH' &&
+    emaSignal3m === 'BEARISH' &&
+    macdSignal5m === 'BEARISH'
+  ) return 'SELL';
+
   return 'WAIT';
 }
 
-//const { analyze } = require('./ema_macd_strategy');
-
+// Run every 2 seconds
 setInterval(async () => {
-  const signal = await analyze();
-  console.log('📊 Final Decision:', signal);
+  try {
+    const signal = await analyze();
+    console.log('📉 Final Decision:', signal);
+  } catch (err) {
+    console.error('❌ Error:', err.message);
+  }
 }, 2000);
 
 module.exports = { analyze };
