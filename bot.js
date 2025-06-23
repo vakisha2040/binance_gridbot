@@ -204,7 +204,7 @@ async function monitorPrice() {
     try {
       const price = getCurrentPrice();
       if (!price) {
-        await delay(1000);
+        await delay(2000);
         continue;
       }
 
@@ -354,7 +354,7 @@ if (!mainTrade && !hedgeTrade) {
 
     } catch (e) {
       sendMessage(`‼️ CRITICAL MONITOR ERROR: ${e.message}\n${e.stack}`);
-      await delay(3000); // Prevent tight error loops
+      await delay(2000); // Prevent tight error loops
     }
   }
 }
