@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { EMA, MACD } = require('technicalindicators');
-
-const SYMBOL = 'solusdt';
+const config = require('./config.json');
+const SYMBOL = config.symbol;
 const LIMIT = 100;
 
 async function fetchCloses(interval) {
