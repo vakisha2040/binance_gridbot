@@ -59,7 +59,7 @@ async function initializeFreshBoundaries() {
   }
   
  /*
-  const spacing = config.tradeEntrSpacing || 100;
+  const spacing = config.tradeEntrySpacing || 100;
 
 
   boundaries = {
@@ -88,7 +88,7 @@ async function checkForNewTradeOpportunity(price) {
   const signal =  await analyze();
  
   if (signal === 'BUY') {
-    const spacing = config.tradeEntrSpacing || 100;
+    const spacing = config.tradeEntrySpacing;
 
 
   boundaries = {
@@ -107,7 +107,7 @@ async function checkForNewTradeOpportunity(price) {
     openMainTrade("Buy", price);
   } 
   else if (signal === 'SELL') {
-    const spacing = config.tradeEntrSpacing || 100;
+    const spacing = config.tradeEntrySpacing;
 
 
   boundaries = {
@@ -251,7 +251,7 @@ async function monitorPrice() {
       if (!hedgeTrade && !hedgeOpeningInProgress && !inCooldown) {
         // For Buy main trades (need Sell hedge)
         if (mainTrade?.side === 'Buy' && boundaries.bottom) {
-          const effectiveBoundary = boundaries.bottom + (config.boundaryTolerance || 1.0);
+          const effectiveBoundary = boundaries.bottom + (config.boundaryTolerance);
           
           if (price <= effectiveBoundary) {
             hedgeOpeningInProgress = true;
@@ -325,7 +325,7 @@ async function monitorPrice() {
               : currentBoundary - price;
 
             // Trail if price moved favorably beyond threshold
-            if (priceFromBoundary > (config.trailingThreshold || 50)) {
+            if (priceFromBoundary > (config.trailingThreshold)) {
               setImmediateHedgeBoundary(price);
             }
 
@@ -765,11 +765,11 @@ function calculateTrailingHedgeOpenPrice(
   return toPrecision(newOpenPrice);
 }
 
-/*
+
 function setImmediateHedgeBoundary(price, force = false) {
   const now = Date.now();
   const throttle = config.hedgeBoundaryUpdateInterval || 30000;
-  const minMove = config.minHedgeBoundaryMove || 20;
+  const minMove = config.minHedgeBoundaryMove ;
 
   if (!force && boundaryLocked) return;
   if (!force && now - lastBoundaryUpdateTime < throttle) return;
@@ -778,8 +778,8 @@ function setImmediateHedgeBoundary(price, force = false) {
   const mainTrade = state.getMainTrade();
   if (!mainTrade) return;
 
-  const trailingBoundary = config.trailingBoundary || 100;
-  const maxHedgeTrailDistance = config.maxHedgeTrailDistance || 150;
+  const trailingBoundary = config.trailingBoundary ;
+  const maxHedgeTrailDistance = config.maxHedgeTrailDistance;
   const lastClose = lastHedgeClosePrice || price;
 
   const newBoundary = calculateTrailingHedgeOpenPrice(
@@ -799,7 +799,8 @@ function setImmediateHedgeBoundary(price, force = false) {
         (newBoundary > boundaries.bottom && moveEnough(boundaries.bottom, newBoundary))) {
       boundaries.bottom = newBoundary;
       boundaries.top = null;
-      persistBoundaries();
+      saveBoundary({ trailingBoundary, boundaries });
+    //  persistBoundaries();
       sendMessage(
         `🟦 New bottom hedge boundary set\n` +
         `🔹 Main trade side: Buy\n` +
@@ -814,7 +815,8 @@ function setImmediateHedgeBoundary(price, force = false) {
         (newBoundary < boundaries.top && moveEnough(boundaries.top, newBoundary))) {
       boundaries.top = newBoundary;
       boundaries.bottom = null;
-      persistBoundaries();
+     // persistBoundaries();
+      saveBoundary({ trailingBoundary, boundaries });
       sendMessage(
         `🟥 New top hedge boundary set\n` +
         `🔸 Main trade side: Sell\n` +
@@ -826,10 +828,10 @@ function setImmediateHedgeBoundary(price, force = false) {
     }
   }
 }
-*/
 
 
 
+/*
 
 function setImmediateHedgeBoundary(price, force = false) {
     try {
@@ -866,7 +868,7 @@ function setImmediateHedgeBoundary(price, force = false) {
         // 3. CALCULATE NEW BOUNDARY
         const lastClose = lastHedgeClosePrice || mainTrade.entry;
         const priceChange = Math.abs(price - lastClose);
-        const minMove = config.minHedgeBoundaryMove || 20;
+        const minMove = config.minHedgeBoundaryMove;
         
         if (!force && priceChange < minMove) {
             if (config.debug) sendMessage(`↩️ Price change (${priceChange.toFixed(1)}) < min move (${minMove})`);
@@ -931,7 +933,7 @@ function setImmediateHedgeBoundary(price, force = false) {
 // Helper function for dynamic spacing calculation
 function calculateDynamicSpacing(currentPrice, trade) {
     // 1. Base spacing from config
-    let spacing = config.newBoundarySpacing || 100;
+    let spacing = config.newBoundarySpacing;
     
     // 2. Volatility adjustment (optional)
     if (config.volatilityAdjustment) {
@@ -946,7 +948,7 @@ function calculateDynamicSpacing(currentPrice, trade) {
     }
     
     // 4. Emergency widening (if price moved too fast)
-    const emergencyMove = config.zeroLevelSpacing * 3;
+    const emergencyMove = config.zeroLevelSpacing * 2;
     if (Math.abs(currentPrice - (lastHedgeClosePrice || trade.entry)) > emergencyMove) {
         spacing *= 1.2; // 20% wider in emergencies
         sendMessage(`🚨 Emergency boundary widening applied`);
@@ -956,7 +958,7 @@ function calculateDynamicSpacing(currentPrice, trade) {
 }
 
 
-
+*/
 
 
 function delay(ms) {
