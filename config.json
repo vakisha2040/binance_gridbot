@@ -9,7 +9,7 @@
   "initialTradeSide": "Buy",
   "startPrice": null,
   "tradeEntrySpacing": 1.01,
-  "trailingBoundary": 0.5,
+  "trailingBoundary": 0.4,
   "maxHedgeTrailDistance": 0.5, 
   "gridSpacing": 0.9,
   "zeroLevelSpacing":1.01,
@@ -26,7 +26,7 @@
   "hedgeKillResetMultiplier": 1.11,
   "testnet": false,
   "closePositionsOnStop": true,
-  "trailingThreshold": 0.5,
+  "trailingThreshold": 0.1,
   "hedgeOpenRetryDelay": 2000,
   "monitorInterval": 1000,
   "trailingThreshold": 50,
@@ -36,6 +36,6 @@
   "debug": false,
   "boundaryUpdateInterval": 3000,
   "boundaryTolerance": 0.001,
-  "trailingThreshold": 0.5,
-  "emergencyThresholdMultiplier": 0.2
+  "trailingThreshold": 0.2,
+  "emergencyThresholdMultiplier": 0.02
 }
