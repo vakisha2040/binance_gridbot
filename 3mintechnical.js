@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { EMA, MACD } = require('technicalindicators');
 const config = require('./config.json');
-const SYMBOL = config.SYMBOL;
+const SYMBOL = config.symbol;
 const INTERVAL = '3m'; // 3-minute candles
 const LIMIT = 100;
 
