@@ -12,7 +12,9 @@ const {
   stopPolling
 } = require('./priceFeed');
 
-let extremeBoundary = null; // Tracks the highest (Buy) or lowest (Sell) boundary
+let extremeBoundary = null; // Tracks most aggressive boundary level
+let lastBoundaryUpdateTime = 0;
+const BOUNDARY_UPDATE_COOLDOWN = 5000; // 3 seconds minimum between updates
 const bybit = require('./binanceClient');
 const config = require('./config.json');
 const state = require('./state');
@@ -35,7 +37,7 @@ let hedgeCooldownUntil = 0;
 let sentReadyTrigger = false;
 let sentKillTrigger = false;
 let lastBoundaryUpdateTime = 0;
-const BOUNDARY_UPDATE_INTERVAL = 30 * 1000;
+const BOUNDARY_UPDATE_INTERVAL = 50 * 1000;
 let lastSetBoundary = null;
 const HBP = config.hedgeBreakthroughPrice; 
 let preKillStartTime = null;
