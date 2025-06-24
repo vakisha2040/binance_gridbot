@@ -698,12 +698,11 @@ async function closeHedgeTrade(price, manual = false) {
       setTimeout(async () => {
         if (!state.getHedgeTrade() && state.getMainTrade()) {
           sendMessage(`🔄 Cooldown expired - setting up new boundary`);
-          await setImmediateHedgeBoundary(getCurrentPrice(), true);
-        }
+          await initializeNewHedgeBoundaries;
       }, (config.hedgeCooldownPeriod || 30000) + 1000); // Extra 1s buffer
     } else {
       // Normal close - set boundary immediately
-      setImmediateHedgeBoundary(price);
+      await initializeNewHedgeBoundaries;
     }
 
   } catch (e) {
@@ -967,6 +966,34 @@ function calculateDynamicSpacing(currentPrice, trade) {
 
 */
 
+
+async function initializeNewHedgeBoundaries() {
+  const price = getCurrentPrice();
+  if (!price) {
+    sendMessage('⚠️ Unable to get current price to set boundaries.');
+    return;
+  }
+
+  const mainTrade = state.getMainTrade();
+  if (mainTrade) {
+    if (mainTrade.side === 'Buy') {
+      boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
+      boundaries.top = null;
+      sendMessage(`🔵 For buy main trade - New hedge bottom boundary set at ${boundaries.bottom} (current: ${price})`);
+    } else {
+      boundaries.top = toPrecision(price + config.newBoundarySpacing);
+      boundaries.bottom = null;
+      sendMessage(`🔴 For sell main trade - New hedge top boundary set at ${boundaries.top} (current: ${price})`);
+    }
+  } else {
+   // boundaries.top = toPrecision(price + config.tradeEntrySpacing);
+    //boundaries.bottom = toPrecision(price - config.tradeEntrySpacing);
+    sendMessage(`⚪ No main trade - boundaries set at ${boundaries.bottom}-${boundaries.top} (current: ${price})`);
+  }
+
+  saveBoundary({ trailingBoundary, boundaries });
+}
+
 async function setImmediateHedgeBoundary(price, force = false) {
     const mainTrade = state.getMainTrade();
     if (!mainTrade || (!force && boundaryLocked)) return;
@@ -990,7 +1017,7 @@ async function setImmediateHedgeBoundary(price, force = false) {
 
     // Calculate proposed new boundary
     const proposedBoundary = calculateTrailingHedgeOpenPrice(
-        currentBoundary || lastHedgeClosePrice || mainTrade.entry,
+        currentBoundary || lastHedgeClosePrice,
         price,
         mainTrade.side
     );
