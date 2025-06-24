@@ -683,26 +683,23 @@ async function closeHedgeTrade(price, manual = false) {
     lastHedgeClosePrice = price;
     state.clearHedgeTrade();
     lastBoundaryUpdateTime = 0;
-    let extremeBoundary = null; // Tracks the most aggressive boundary level
     boundaryLocked = false;
+
     if (wasKilled) {
       hedgeCooldownUntil = Date.now() + (config.hedgeCooldownPeriod || 30000);
-      sendMessage(`⏳ Hedge kill executed - cooldown active for ${config.hedgeCooldownPeriod || 30} seconds`);
-      
-      // Clear boundaries immediately
+      sendMessage(`⏳ Hedge kill executed - cooldown active for ${config.hedgeCooldownPeriod || 3000} seconds`);
+
       boundaries.top = null;
       boundaries.bottom = null;
       saveBoundary({ trailingBoundary, boundaries });
-      
-      // Schedule boundary setup after cooldown
+
       setTimeout(async () => {
         if (!state.getHedgeTrade() && state.getMainTrade()) {
           sendMessage(`🔄 Cooldown expired - setting up new boundary`);
           await initializeNewHedgeBoundaries();
-      }, 
-        (config.hedgeCooldownPeriod) );
+        }
+      }, (config.hedgeCooldownPeriod ) + 1000);
     } else {
-      // Normal close - set boundary immediately
       await initializeNewHedgeBoundaries();
     }
 
@@ -710,6 +707,7 @@ async function closeHedgeTrade(price, manual = false) {
     sendMessage(`❌ Failed to close hedge trade: ${e.message}`);
   }
 }
+
 
 
 function checkAndTrailBoundaries(price) {
