@@ -175,7 +175,7 @@ const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
   } 
   else {
   
-    const initialSide = config.initialTradeSide || 'Buy';
+   // const initialSide = config.initialTradeSide || 'Buy';
   //  await openMainTrade(initialSide, price);
 
   }
@@ -698,11 +698,11 @@ async function closeHedgeTrade(price, manual = false) {
       setTimeout(async () => {
         if (!state.getHedgeTrade() && state.getMainTrade()) {
           sendMessage(`🔄 Cooldown expired - setting up new boundary`);
-          await initializeNewHedgeBoundaries;
+          await initializeNewHedgeBoundaries();
       }, (config.hedgeCooldownPeriod || 30000) + 1000); // Extra 1s buffer
     } else {
       // Normal close - set boundary immediately
-      await initializeNewHedgeBoundaries;
+      await initializeNewHedgeBoundaries();
     }
 
   } catch (e) {
