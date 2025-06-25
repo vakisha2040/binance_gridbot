@@ -682,7 +682,7 @@ async function closeHedgeTrade(price, manual = false) {
     const wasKilled = hedgeTrade.killTriggered;
     lastHedgeClosePrice = price;
     state.clearHedgeTrade();
-    lastBoundaryUpdateTime = 0;
+    lastBoundaryUpdateTime = Date.now();
     boundaryLocked = false;
 
     if (wasKilled) {
@@ -732,238 +732,7 @@ function checkAndTrailBoundaries(price) {
   }
 }
 
-/*
-function calculateTrailingHedgeOpenPrice(
-  lastClose,
-  currentPrice,
-  gridSpacing,
-  trailingBoundary,
-  maxHedgeTrailDistance,
-  mainTradeSide
-) {
-  const distance = Math.abs(currentPrice - lastClose);
-  let newOpenPrice;
 
-  if (distance > trailingBoundary) {
-    newOpenPrice = lastClose + 0.5 * (currentPrice - lastClose);
-
-    if (maxHedgeTrailDistance && Math.abs(newOpenPrice - lastClose) > maxHedgeTrailDistance) {
-      newOpenPrice = currentPrice > lastClose
-        ? lastClose + maxHedgeTrailDistance
-        : lastClose - maxHedgeTrailDistance;
-    }
-
-    sendMessage(
-      `⚡️ Hedge boundary adjusted for sharp move:\n` +
-      `Last hedge close: ${lastClose}, Current price: ${currentPrice}, Distance: ${distance}, New hedge open price: ${newOpenPrice}`
-    );
-  } else {
-    newOpenPrice = mainTradeSide === 'Buy'
-      ? lastClose - config.newBoundarySpacing
-      : lastClose + config.newBoundarySpacing;
-
-    sendMessage(
-      `🔲 Hedge boundary (default grid): Last hedge close: ${lastClose}, New hedge open price: ${newOpenPrice}`
-    );
-  }
-
-  return toPrecision(newOpenPrice);
-}
-
-
-function setImmediateHedgeBoundary(price, force = false) {
-  const now = Date.now();
-  const throttle = config.hedgeBoundaryUpdateInterval || 30000;
-  const minMove = config.minHedgeBoundaryMove ;
-
-  if (!force && boundaryLocked) return;
-  if (!force && now - lastBoundaryUpdateTime < throttle) return;
-  lastBoundaryUpdateTime = now;
-
-  const mainTrade = state.getMainTrade();
-  if (!mainTrade) return;
-
-  const trailingBoundary = config.trailingBoundary ;
-  const maxHedgeTrailDistance = config.maxHedgeTrailDistance;
-  const lastClose = lastHedgeClosePrice || price;
-
-  const newBoundary = calculateTrailingHedgeOpenPrice(
-    lastClose,
-    price,
-    config.tradeEntrySpacing,
-    trailingBoundary,
-    maxHedgeTrailDistance,
-    mainTrade.side
-  );
-
-  const distance = Math.abs(price - lastClose);
-  const moveEnough = (prev, next) => Math.abs(prev - next) >= minMove;
-
-  if (mainTrade.side === 'Buy') {
-    if (!boundaries.bottom || 
-        (newBoundary > boundaries.bottom && moveEnough(boundaries.bottom, newBoundary))) {
-      boundaries.bottom = newBoundary;
-      boundaries.top = null;
-      saveBoundary({ trailingBoundary, boundaries });
-    //  persistBoundaries();
-      sendMessage(
-        `🟦 New bottom hedge boundary set\n` +
-        `🔹 Main trade side: Buy\n` +
-        `📉 Last hedge close: ${lastClose}\n` +
-        `📈 Current price: ${price}\n` +
-        `📏 Distance moved: ${toPrecision(distance)}\n` +
-        `🎯 New bottom boundary: ${boundaries.bottom}`
-      );
-    }
-  } else if (mainTrade.side === 'Sell') {
-    if (!boundaries.top || 
-        (newBoundary < boundaries.top && moveEnough(boundaries.top, newBoundary))) {
-      boundaries.top = newBoundary;
-      boundaries.bottom = null;
-     // persistBoundaries();
-      saveBoundary({ trailingBoundary, boundaries });
-      sendMessage(
-        `🟥 New top hedge boundary set\n` +
-        `🔸 Main trade side: Sell\n` +
-        `📉 Last hedge close: ${lastClose}\n` +
-        `📈 Current price: ${price}\n` +
-        `📏 Distance moved: ${toPrecision(distance)}\n` +
-        `🎯 New top boundary: ${boundaries.top}`
-      );
-    }
-  }
-}
-
-
-
-
-
-function setImmediateHedgeBoundary(price, force = false) {
-    try {
-        const now = Date.now();
-        const mainTrade = state.getMainTrade();
-        
-        // 1. VALIDATION CHECKS
-        if (!mainTrade || !price) {
-            if (config.debug) sendMessage("⚠️ Boundary update skipped: No main trade or invalid price");
-            return;
-        }
-
-        // 2. COOLDOWN & THROTTLING
-        const sinceLastUpdate = now - (lastBoundaryUpdateTime || 0);
-        const throttleTime = config.hedgeBoundaryUpdateInterval || 30000;
-        
-        if (!force) {
-            if (boundaryLocked) {
-                if (config.debug) sendMessage("🔒 Boundary update skipped: Boundary locked");
-                return;
-            }
-            
-            if (sinceLastUpdate < throttleTime) {
-                // Only log throttling if we're close to next allowed update
-                if (throttleTime - sinceLastUpdate < 10000) { // <10s remaining
-                    const secondsRemaining = Math.ceil((throttleTime - sinceLastUpdate)/1000);
-                    if (config.debug) sendMessage(`⏳ Boundary update throttled (${secondsRemaining}s remaining)`);
-                }
-                return;
-            }
-        }
-
-
-        // 3. CALCULATE NEW BOUNDARY
-        const lastClose = lastHedgeClosePrice || mainTrade.entry;
-        const priceChange = Math.abs(price - lastClose);
-        const minMove = config.minHedgeBoundaryMove;
-        
-        if (!force && priceChange < minMove) {
-            if (config.debug) sendMessage(`↩️ Price change (${priceChange.toFixed(1)}) < min move (${minMove})`);
-            return;
-        }
-
-        // 4. DYNAMIC BOUNDARY CALCULATION
-        let newBoundary, boundaryType;
-        const spacing = calculateDynamicSpacing(price, mainTrade);
-        
-        if (mainTrade.side === 'Buy') {
-            newBoundary = toPrecision(price - spacing);
-            boundaryType = 'bottom';
-            
-            if (boundaries.bottom && newBoundary <= boundaries.bottom) {
-                if (config.debug) sendMessage(`↩️ New bottom ${newBoundary} <= current ${boundaries.bottom}`);
-                return;
-            }
-            
-            boundaries.bottom = newBoundary;
-            boundaries.top = null;
-        } else {
-            newBoundary = toPrecision(price + spacing);
-            boundaryType = 'top';
-            
-            if (boundaries.top && newBoundary >= boundaries.top) {
-                if (config.debug) sendMessage(`↩️ New top ${newBoundary} >= current ${boundaries.top}`);
-                return;
-            }
-            
-            boundaries.top = newBoundary;
-            boundaries.bottom = null;
-        }
-
-        // 5. UPDATE STATE
-        lastBoundaryUpdateTime = now;
-        saveBoundary({ trailingBoundary, boundaries }); // Changed from persistBoundaries to saveBoundary
-
-        // 6. CONDITIONAL LOGGING
-        const shouldLog = force || (config.debug && priceChange >= minMove);
-        if (shouldLog) {
-            const logMessage = [
-                `🔄 ${force ? 'FORCED ' : ''}Boundary Updated`,
-                `▫️ Type: ${boundaryType.toUpperCase()}`,
-                `▫️ Price: ${price} (Δ${priceChange.toFixed(1)})`,
-                `▫️ New: ${newBoundary}`,
-                `▫️ Spacing: ${spacing}`,
-                `▫️ Level: ${mainTrade.level}`
-            ].join('\n');
-            sendMessage(logMessage);
-        }
-
-    } catch (e) {
-        console.error('Boundary update error:', e);
-        sendMessage(`❌ Boundary update failed: ${e.message}`);
-    }
-}
-
-
-
-
-// Helper function for dynamic spacing calculation
-function calculateDynamicSpacing(currentPrice, trade) {
-    // 1. Base spacing from config
-    let spacing = config.newBoundarySpacing;
-    
-    // 2. Volatility adjustment (optional)
-    if (config.volatilityAdjustment) {
-        const priceChange = Math.abs(currentPrice - trade.entry);
-        const volatilityFactor = Math.min(1 + (priceChange / (config.zeroLevelSpacing * 10)), 1.5);
-        spacing *= volatilityFactor;
-    }
-    
-    // 3. Grid level adjustment (optional)
-    if (config.levelBasedSpacing && trade.level > 0) {
-        spacing *= (1 + (trade.level * 0.05)); // 5% increase per level
-    }
-    
-    // 4. Emergency widening (if price moved too fast)
-    const emergencyMove = config.zeroLevelSpacing * 2;
-    if (Math.abs(currentPrice - (lastHedgeClosePrice || trade.entry)) > emergencyMove) {
-        spacing *= 1.2; // 20% wider in emergencies
-        sendMessage(`🚨 Emergency boundary widening applied`);
-    }
-    
-    return toPrecision(spacing);
-}
-
-
-*/
 
 
 async function initializeNewHedgeBoundaries() {
@@ -993,6 +762,7 @@ async function initializeNewHedgeBoundaries() {
   saveBoundary({ trailingBoundary, boundaries });
 }
 
+/*
 async function setImmediateHedgeBoundary(price, force = false) {
     const mainTrade = state.getMainTrade();
     if (!mainTrade || (!force && boundaryLocked)) return;
@@ -1055,7 +825,87 @@ async function setImmediateHedgeBoundary(price, force = false) {
     }
 }
 
+*/
 
+
+//new updated for trailing 
+
+async function setImmediateHedgeBoundary(price, force = false) {
+    const mainTrade = state.getMainTrade();
+    if ((!mainTrade && boundaryLocked) || (!force && boundaryLocked)) return;
+
+
+
+const currentBoundary = mainTrade.side === 'Buy' 
+        ? boundaries.bottom 
+        : boundaries.top;
+
+    // Check minimum move threshold (configurable, default $0.10)
+    const minMove = config.boundaryStickyness || 0.10;
+    if (currentBoundary && Math.abs(price - currentBoundary) < minMove) {
+        return;
+    }
+
+
+// Only allow updates every X seconds (configurable)
+const BOUNDARY_COOLDOWN = config.boundaryUpdateInterval || 9000; // 9 seconds
+
+if (Date.now() - lastBoundaryUpdateTime < BOUNDARY_COOLDOWN) {
+    return;
+}
+
+    // Throttle boundary updates
+  const now = Date.now();
+    if (!force && now - lastBoundaryUpdateTime < config.hedgeBoundaryUpdateInterval) {
+        return;
+    }
+  
+    lastBoundaryUpdateTime = now;
+
+    // Calculate proposed boundary
+    const lastClose = lastHedgeClosePrice || mainTrade.entry;
+    const proposedBoundary = calculateTrailingHedgeOpenPrice(
+        lastClose,
+        price,
+        mainTrade.side
+    );
+
+    // Apply one-way trailing logic
+    let boundaryUpdated = false;
+    
+    if (mainTrade.side === 'Buy') {
+        // For Buy trades: boundary only moves UP (higher values)
+        if (!extremeBoundary || proposedBoundary > extremeBoundary) {
+            extremeBoundary = proposedBoundary;
+            boundaries.bottom = extremeBoundary;
+            boundaries.top = null;
+            boundaryUpdated = true;
+        }
+    } else {
+        // For Sell trades: boundary only moves DOWN (lower values)
+        if (!extremeBoundary || proposedBoundary < extremeBoundary) {
+            extremeBoundary = proposedBoundary;
+            boundaries.top = extremeBoundary;
+            boundaries.bottom = null;
+            boundaryUpdated = true;
+        }
+    }
+
+    // Only save and notify if boundary actually changed
+    if (boundaryUpdated) {
+        saveBoundary({ trailingBoundary, boundaries });
+        boundaryUpdated = false;
+        const direction = mainTrade.side === 'Buy' ? 'up' : 'down';
+        sendMessage(
+            `🔄 One-way boundary trailed ${direction}\n` +
+            `▸ Type: ${mainTrade.side} Main Trade\n` +
+            `▸ Last close: ${toPrecision(lastClose)}\n` +
+            `▸ Current price: ${toPrecision(price)}\n` +
+            `▸ New boundary: ${toPrecision(extremeBoundary)}\n` +
+            `▸ Mode: ${force ? 'FORCED' : 'auto'}`
+        );
+    }
+}
 
 
 function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainTradeSide) {
