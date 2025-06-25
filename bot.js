@@ -829,7 +829,7 @@ async function setImmediateHedgeBoundary(price, force = false) {
     }
 }
 
-*/
+
 
 
 //new updated for trailing 
@@ -902,6 +902,95 @@ async function setImmediateHedgeBoundary(price, force = false) {
         );
     }
 }
+
+*/
+
+async function setImmediateHedgeBoundary(price, force = false) {
+    const mainTrade = state.getMainTrade();
+    if (!mainTrade) {
+        sendMessage("[DEBUG] No mainTrade, skipping boundary update");
+        return;
+    }
+    if (boundaryLocked && !force) {
+        sendMessage("[DEBUG] Boundary is locked and not forced");
+        return;
+    }
+
+    const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
+    const minMove = config.boundaryStickyness || 0.10;
+    const distance = Math.abs(price - currentBoundary);
+
+    sendMessage(`[DEBUG] price=${price} currentBoundary=${currentBoundary} distance=${distance} minMove=${minMove}`);
+
+    if (currentBoundary && distance < minMove) {
+        sendMessage("[DEBUG] Not enough movement to update boundary");
+        return;
+    }
+
+    const now = Date.now();
+    const cooldown = force
+        ? (config.boundaryUpdateInterval || 9000)
+        : Math.max(
+            config.boundaryUpdateInterval || 9000,
+            config.hedgeBoundaryUpdateInterval || 9000
+        );
+
+    if (now - lastBoundaryUpdateTime < cooldown && !force) {
+        sendMessage(`[DEBUG] Cooldown not passed (${now - lastBoundaryUpdateTime}ms < ${cooldown}ms)`);
+        return;
+    }
+
+    lastBoundaryUpdateTime = now;
+
+    const lastClose = lastHedgeClosePrice || mainTrade.entry;
+    const proposedBoundary = calculateTrailingHedgeOpenPrice(
+        lastClose,
+        price,
+        mainTrade.side
+    );
+
+    let boundaryUpdated = false;
+    const trailingBoundary = proposedBoundary;
+
+    sendMessage(`[DEBUG] side=${mainTrade.side} extremeBoundary=${extremeBoundary} proposedBoundary=${proposedBoundary}`);
+
+    if (mainTrade.side === 'Buy') {
+        if (!extremeBoundary || proposedBoundary > extremeBoundary) {
+            extremeBoundary = proposedBoundary;
+            boundaries.bottom = extremeBoundary;
+            boundaries.top = null;
+            boundaryUpdated = true;
+            sendMessage("[DEBUG] Buy: boundary updated");
+        } else {
+            sendMessage("[DEBUG] Buy: proposed boundary not more extreme");
+        }
+    } else {
+        if (!extremeBoundary || proposedBoundary < extremeBoundary) {
+            extremeBoundary = proposedBoundary;
+            boundaries.top = extremeBoundary;
+            boundaries.bottom = null;
+            boundaryUpdated = true;
+            sendMessage("[DEBUG] Sell: boundary updated");
+        } else {
+            sendMessage("[DEBUG] Sell: proposed boundary not more extreme");
+        }
+    }
+
+    if (boundaryUpdated) {
+        await saveBoundary({ trailingBoundary, boundaries });
+        const direction = mainTrade.side === 'Buy' ? 'up' : 'down';
+        sendMessage(
+            `🔄 One-way boundary trailed ${direction}\n` +
+            `🟥 Type: ${mainTrade.side} Main Trade\n` +
+            `📉 Last close: ${toPrecision(lastClose)}\n` +
+            `📈 Current price: ${toPrecision(price)}\n` +
+            `🎯 New boundary: ${toPrecision(extremeBoundary)}\n` +
+            `🚨 Mode: ${force ? 'FORCED' : 'auto'}\n` +
+            `📏 Next update in ${cooldown/1000}s`
+        );
+    }
+}
+
 
 function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainTradeSide) {
     const distance = Math.abs(currentPrice - lastReferencePrice);
