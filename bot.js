@@ -339,7 +339,7 @@ async function monitorPrice() {
             // Emergency boundary update if price moved too far
             const emergencyThreshold = (config.zeroLevelSpacing * 2);
             if (priceFromBoundary > emergencyThreshold) {
-              sendMessage(`🚨 EMERGENCY BOUNDARY UPDATE (moved ${priceFromBoundary} from boundary)`);
+            //  sendMessage(`🚨 EMERGENCY BOUNDARY UPDATE (moved ${priceFromBoundary} from boundary)`);
               setImmediateHedgeBoundary(price, true);
             }
           }
