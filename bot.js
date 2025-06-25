@@ -329,7 +329,7 @@ async function monitorPrice() {
 
             // Trail if price moved favorably beyond threshold
             if (priceFromBoundary > (config.trailingThreshold)) {
-              setImmediateHedgeBoundary(price, true);
+              setImmediateHedgeBoundary(price);
             }
 
             // Emergency boundary update if price moved too far
@@ -898,11 +898,12 @@ if (Date.now() - lastBoundaryUpdateTime < BOUNDARY_COOLDOWN) {
         const direction = mainTrade.side === 'Buy' ? 'up' : 'down';
         sendMessage(
             `🔄 One-way boundary trailed ${direction}\n` +
-            `▸ Type: ${mainTrade.side} Main Trade\n` +
-            `▸ Last close: ${toPrecision(lastClose)}\n` +
-            `▸ Current price: ${toPrecision(price)}\n` +
-            `▸ New boundary: ${toPrecision(extremeBoundary)}\n` +
-            `▸ Mode: ${force ? 'FORCED' : 'auto'}`
+            `🟥 Type: ${mainTrade.side} Main Trade\n` +
+            `📉 Last close: ${toPrecision(lastClose)}\n` +
+            `📈 Current price: ${toPrecision(price)}\n` +
+            `🎯 New boundary: ${toPrecision(extremeBoundary)}\n` +
+            `🚨 Mode: ${force ? 'FORCED' : 'auto'}\n` +
+           `📏 Next update in ${BOUNDARY_UPDATE_COOLDOWN/1000}s`
         );
     }
 }
