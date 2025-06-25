@@ -20,7 +20,7 @@
   "cooldownTime": 120,
   "minHedgeBoundaryMove": 0.9,
   "hedgeReentryCooldown": 1000,
-"hedgeBoundaryUpdateInterval": 3000,
+"hedgeBoundaryUpdateInterval": 10000,
   "hedgeKillCooldown": 20,
   "hedgeKillSpacing": 0.20,
   "hedgeBreakthroughPrice": 0.51,
