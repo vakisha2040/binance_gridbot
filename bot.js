@@ -835,8 +835,7 @@ async function setImmediateHedgeBoundary(price, force = false) {
 //new updated for trailing 
 
 async function setImmediateHedgeBoundary(price, force = false) {
-
-  const mainTrade = state.getMainTrade();
+    const mainTrade = state.getMainTrade();
     if (!mainTrade || (boundaryLocked && !force)) return;
 
     const currentBoundary = mainTrade.side === 'Buy' 
@@ -847,7 +846,8 @@ async function setImmediateHedgeBoundary(price, force = false) {
     if (currentBoundary && Math.abs(price - currentBoundary) < minMove) {
         return;
     }
-/*
+
+    // Uncomment and fix cooldown check
     const now = Date.now();
     const cooldown = force
         ? (config.boundaryUpdateInterval || 9000)
@@ -856,11 +856,10 @@ async function setImmediateHedgeBoundary(price, force = false) {
             config.hedgeBoundaryUpdateInterval || 9000
         );
 
-    if (now - lastBoundaryUpdateTime < cooldown) {
+    if (now - lastBoundaryUpdateTime < cooldown && !force) {
         return;
     }
-*/
-  
+
     lastBoundaryUpdateTime = now;
 
     const lastClose = lastHedgeClosePrice || mainTrade.entry;
@@ -871,6 +870,7 @@ async function setImmediateHedgeBoundary(price, force = false) {
     );
 
     let boundaryUpdated = false;
+    const trailingBoundary = proposedBoundary; // Define trailingBoundary
 
     if (mainTrade.side === 'Buy') {
         if (!extremeBoundary || proposedBoundary > extremeBoundary) {
@@ -887,12 +887,9 @@ async function setImmediateHedgeBoundary(price, force = false) {
             boundaryUpdated = true;
         }
     }
-  
 
-    // Only save and notify if boundary actually changed
     if (boundaryUpdated) {
-        saveBoundary({ trailingBoundary, boundaries });
-        boundaryUpdated = false;
+        await saveBoundary({ trailingBoundary, boundaries });
         const direction = mainTrade.side === 'Buy' ? 'up' : 'down';
         sendMessage(
             `🔄 One-way boundary trailed ${direction}\n` +
@@ -901,11 +898,10 @@ async function setImmediateHedgeBoundary(price, force = false) {
             `📈 Current price: ${toPrecision(price)}\n` +
             `🎯 New boundary: ${toPrecision(extremeBoundary)}\n` +
             `🚨 Mode: ${force ? 'FORCED' : 'auto'}\n` +
-           `📏 Next update in ${BOUNDARY_UPDATE_COOLDOWN/1000}s`
+            `📏 Next update in ${cooldown/1000}s`
         );
     }
 }
-
 
 function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainTradeSide) {
     const distance = Math.abs(currentPrice - lastReferencePrice);
