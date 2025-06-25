@@ -831,38 +831,33 @@ async function setImmediateHedgeBoundary(price, force = false) {
 //new updated for trailing 
 
 async function setImmediateHedgeBoundary(price, force = false) {
-    const mainTrade = state.getMainTrade();
-    if ((!mainTrade && boundaryLocked) || (!force && boundaryLocked)) return;
 
+  const mainTrade = state.getMainTrade();
+    if (!mainTrade || (boundaryLocked && !force)) return;
 
-
-const currentBoundary = mainTrade.side === 'Buy' 
+    const currentBoundary = mainTrade.side === 'Buy' 
         ? boundaries.bottom 
         : boundaries.top;
 
-    // Check minimum move threshold (configurable, default $0.10)
     const minMove = config.boundaryStickyness || 0.10;
     if (currentBoundary && Math.abs(price - currentBoundary) < minMove) {
         return;
     }
 
+    const now = Date.now();
+    const cooldown = force
+        ? (config.boundaryUpdateInterval || 9000)
+        : Math.max(
+            config.boundaryUpdateInterval || 9000,
+            config.hedgeBoundaryUpdateInterval || 9000
+        );
 
-// Only allow updates every X seconds (configurable)
-const BOUNDARY_COOLDOWN = config.boundaryUpdateInterval || 9000; // 9 seconds
-
-if (Date.now() - lastBoundaryUpdateTime < BOUNDARY_COOLDOWN) {
-    return;
-}
-
-    // Throttle boundary updates
-  const now = Date.now();
-    if (!force && now - lastBoundaryUpdateTime < config.hedgeBoundaryUpdateInterval) {
+    if (now - lastBoundaryUpdateTime < cooldown) {
         return;
     }
-  
+
     lastBoundaryUpdateTime = now;
 
-    // Calculate proposed boundary
     const lastClose = lastHedgeClosePrice || mainTrade.entry;
     const proposedBoundary = calculateTrailingHedgeOpenPrice(
         lastClose,
@@ -870,11 +865,9 @@ if (Date.now() - lastBoundaryUpdateTime < BOUNDARY_COOLDOWN) {
         mainTrade.side
     );
 
-    // Apply one-way trailing logic
     let boundaryUpdated = false;
-    
+
     if (mainTrade.side === 'Buy') {
-        // For Buy trades: boundary only moves UP (higher values)
         if (!extremeBoundary || proposedBoundary > extremeBoundary) {
             extremeBoundary = proposedBoundary;
             boundaries.bottom = extremeBoundary;
@@ -882,7 +875,6 @@ if (Date.now() - lastBoundaryUpdateTime < BOUNDARY_COOLDOWN) {
             boundaryUpdated = true;
         }
     } else {
-        // For Sell trades: boundary only moves DOWN (lower values)
         if (!extremeBoundary || proposedBoundary < extremeBoundary) {
             extremeBoundary = proposedBoundary;
             boundaries.top = extremeBoundary;
@@ -890,6 +882,7 @@ if (Date.now() - lastBoundaryUpdateTime < BOUNDARY_COOLDOWN) {
             boundaryUpdated = true;
         }
     }
+  
 
     // Only save and notify if boundary actually changed
     if (boundaryUpdated) {
