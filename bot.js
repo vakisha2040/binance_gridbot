@@ -320,7 +320,7 @@ async function monitorPrice() {
         await handleMainTrade(price);
 
         // Price trailing for main trade
-        if (!hedgeTrade && !inCooldown) {
+        if (!hedgeTrade && !boundaryLocked) {
           const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
           if (currentBoundary) {
             const priceFromBoundary = mainTrade.side === 'Buy' 
@@ -329,7 +329,7 @@ async function monitorPrice() {
 
             // Trail if price moved favorably beyond threshold
             if (priceFromBoundary > (config.trailingThreshold)) {
-              setImmediateHedgeBoundary(price);
+              setImmediateHedgeBoundary(price, true);
             }
 
             // Emergency boundary update if price moved too far
@@ -382,7 +382,7 @@ if (!mainTrade && !hedgeTrade) {
       // 6. PERIODIC BOUNDARY CHECK ===========================================
       if (now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL) {
         if (mainTrade && !hedgeTrade && !boundaryLocked) {
-          setImmediateHedgeBoundary(price);
+          setImmediateHedgeBoundary(price, true);
         }
         lastBoundaryUpdateTime = now;
       }
@@ -999,9 +999,9 @@ async function setImmediateHedgeBoundary(price, force = false) {
 
     // Throttle boundary updates
     const now = Date.now();
-    if (!force && now - lastBoundaryUpdateTime < BOUNDARY_UPDATE_COOLDOWN) {
-        return;
-    }
+ //   if (!force && now - lastBoundaryUpdateTime < BOUNDARY_UPDATE_COOLDOWN) {
+ //       return;
+//    }
 
     // Get current boundary value
     const currentBoundary = mainTrade.side === 'Buy' 
