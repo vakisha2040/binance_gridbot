@@ -258,6 +258,7 @@ async function monitorPrice() {
           
           if (price <= effectiveBoundary) {
             hedgeOpeningInProgress = true;
+         /*
             sendMessage(
               `⚠️ PRICE CROSSED BOUNDARY\n` +
               `▫️ Main Trade: Buy @ ${mainTrade.entry}\n` +
@@ -265,6 +266,7 @@ async function monitorPrice() {
               `▫️ Current: ${price}\n` +
               `🛡️ Attempting Sell hedge...`
             );
+            */
 
             try {
               await openHedgeTrade('Sell', price);
@@ -289,6 +291,7 @@ async function monitorPrice() {
           
           if (price >= effectiveBoundary) {
             hedgeOpeningInProgress = true;
+          /*
             sendMessage(
               `⚠️ PRICE CROSSED BOUNDARY\n` +
               `▫️ Main Trade: Sell @ ${mainTrade.entry}\n` +
@@ -296,6 +299,7 @@ async function monitorPrice() {
               `▫️ Current: ${price}\n` +
               `🛡️ Attempting Buy hedge...`
             );
+            */
 
             try {
               await openHedgeTrade('Buy', price);
@@ -546,12 +550,12 @@ async function openHedgeTrade(side, entryPrice) {
   if (mainTrade) {
     if (mainTrade.side === 'Buy') {
       if (side === 'Sell' && (!boundaries.bottom || entryPrice > boundaries.bottom)) {
-        sendMessage(`⚠️ Cannot open Sell hedge when price (${entryPrice}) is above bottom boundary (${boundaries.bottom})`);
+      //  sendMessage(`⚠️ Cannot open Sell hedge when price (${entryPrice}) is above bottom boundary (${boundaries.bottom})`);
         return;
       }
     } else if (mainTrade.side === 'Sell') {
       if (side === 'Buy' && (!boundaries.top || entryPrice < boundaries.top)) {
-        sendMessage(`⚠️ Cannot open Buy hedge when price (${entryPrice}) is below top boundary (${boundaries.top})`);
+      //  sendMessage(`⚠️ Cannot open Buy hedge when price (${entryPrice}) is below top boundary (${boundaries.top})`);
         return;
       }
     }
