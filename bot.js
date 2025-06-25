@@ -329,7 +329,7 @@ async function monitorPrice() {
 
             // Trail if price moved favorably beyond threshold
             if (priceFromBoundary > (config.trailingThreshold)) {
-              setImmediateHedgeBoundary(price);
+              setImmediateHedgeBoundary(price, true);
             }
 
             // Emergency boundary update if price moved too far
