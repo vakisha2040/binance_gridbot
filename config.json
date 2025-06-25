@@ -18,7 +18,7 @@
   "gridLevels": 120,
   "gridStopLossPercent": 0.85,
   "cooldownTime": 120,
-  "minHedgeBoundaryMove": 0.9,
+  "minHedgeBoundaryMove": 0.6,
   "hedgeReentryCooldown": 1000,
 "hedgeBoundaryUpdateInterval": 10000,
   "hedgeKillCooldown": 20,
@@ -32,9 +32,9 @@
   "volatilityAdjustment": false,
   "levelBasedSpacing": false,
   "debug": false,
-  "boundaryUpdateInterval": 3000,
+  "boundaryUpdateInterval": 6000,
   "boundaryTolerance": 0.2,
-  "trailingThreshold": 0.6,
+  "trailingThreshold": 0.8,
     "oneWayTrailing": true,
   "emergencyThresholdMultiplier": 0.02
 }
