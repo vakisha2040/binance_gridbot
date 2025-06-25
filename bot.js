@@ -847,7 +847,7 @@ async function setImmediateHedgeBoundary(price, force = false) {
     if (currentBoundary && Math.abs(price - currentBoundary) < minMove) {
         return;
     }
-
+/*
     const now = Date.now();
     const cooldown = force
         ? (config.boundaryUpdateInterval || 9000)
@@ -859,7 +859,8 @@ async function setImmediateHedgeBoundary(price, force = false) {
     if (now - lastBoundaryUpdateTime < cooldown) {
         return;
     }
-
+*/
+  
     lastBoundaryUpdateTime = now;
 
     const lastClose = lastHedgeClosePrice || mainTrade.entry;
