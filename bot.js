@@ -32,6 +32,7 @@ let { trailingBoundary, boundaries } = loadBoundary();
 if (!boundaries){
   boundaries = { top: null, bottom: null };
 }
+let lastClose = null;
 let lastHedgeClosePrice = null;
 let hedgeCooldownUntil = 0;
 let sentReadyTrigger = false;
@@ -490,7 +491,7 @@ async function closeMainTrade(price, manual = false) {
     sendMessage(`✅ ${mainTrade.side} trade closed at ${price}`);
 
     state.clearMainTrade();
-    
+    let lastClose = null;
     if (state.getHedgeTrade()) {
       promoteHedgeToMain();
     } else {
@@ -950,11 +951,9 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
     lastBoundaryUpdateTime = now;
 
   //  const lastClose = lastHedgeClosePrice || mainTrade.entry;
- if (mainTrade.side === 'Buy') {
-const lastClose = boundaries.bottom;
- } else {
-   const lastClose = boundaries.top;
- }
+   let lastClose = mainTrade.side === 'Buy' 
+        ? boundaries.bottom 
+        : boundaries.top;
     
   const proposedBoundary = calculateTrailingHedgeOpenPrice(
         lastClose,
