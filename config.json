@@ -10,7 +10,7 @@
   "startPrice": null,
   "tradeEntrySpacing": 1.01,
   "trailingBoundary": 0.8,
-  "boundaryStickyness": 0.3,
+  "boundaryStickyness": 0.7,
   "maxHedgeTrailDistance": 0.8, 
   "gridSpacing": 0.9,
   "zeroLevelSpacing":1.01,
