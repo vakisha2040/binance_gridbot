@@ -334,7 +334,7 @@ async function monitorPrice() {
             // Trail if price moved favorably beyond threshold
             if (priceFromBoundary > (config.trailingThreshold)) {
             if (mainTrade && !hedgeTrade && !boundaryLocked) {
-    setImmediateHedgeBoundary(price, true, mainTrade);
+  await setImmediateHedgeBoundary(price, true, mainTrade);
 }
             }
 
@@ -343,7 +343,7 @@ async function monitorPrice() {
             if (priceFromBoundary > emergencyThreshold) {
             //  sendMessage(`🚨 EMERGENCY BOUNDARY UPDATE (moved ${priceFromBoundary} from boundary)`);
               if (mainTrade && !hedgeTrade && !boundaryLocked) {
-    setImmediateHedgeBoundary(price, true, mainTrade);
+  await setImmediateHedgeBoundary(price, true, mainTrade);
 }
             }
           }
@@ -949,8 +949,14 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
 
     lastBoundaryUpdateTime = now;
 
-    const lastClose = lastHedgeClosePrice || mainTrade.entry;
-    const proposedBoundary = calculateTrailingHedgeOpenPrice(
+  //  const lastClose = lastHedgeClosePrice || mainTrade.entry;
+ if (mainTrade.side === 'Buy') {
+const lastClose = boundaries.bottom;
+ } else {
+   const lastClose = boundaries.top;
+ }
+    
+  const proposedBoundary = calculateTrailingHedgeOpenPrice(
         lastClose,
         price,
         mainTrade.side
@@ -1028,7 +1034,7 @@ function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainT
 }
 */
 
-function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainTradeSide) {
+   function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainTradeSide) {
     const distance = Math.abs(currentPrice - lastReferencePrice);
 
     // For small moves, always move boundary DOWN regardless of side
