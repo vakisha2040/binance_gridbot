@@ -1051,13 +1051,14 @@ function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainT
         Math.abs(rawAdjustment),
         config.maxHedgeTrailDistance
     );
-
+/*
     // Debugging output for tracing calculation
     sendMessage(
       `[DEBUG] lastReferencePrice=${lastReferencePrice}, currentPrice=${currentPrice}, mainTradeSide=${mainTradeSide}, ` +
       `distance=${distance}, rawAdjustment=${rawAdjustment}, cappedAdjustment=${cappedAdjustment}, ` +
       `proposedBoundary=${lastReferencePrice + cappedAdjustment}, pricePrecision=${config.pricePrecision}, newBoundarySpacing=${config.newBoundarySpacing}, maxHedgeTrailDistance=${config.maxHedgeTrailDistance}, trailingThreshold=${config.trailingThreshold}`
     );
+    */
 
     return toPrecision(
         lastReferencePrice + cappedAdjustment,
