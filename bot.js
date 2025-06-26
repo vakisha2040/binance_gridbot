@@ -378,7 +378,7 @@ if (!mainTrade && !hedgeTrade) {
    await  initializeFreshBoundaries();
   }
 }
-
+}
       
 
       // 5. COOLDOWN MANAGEMENT ===============================================
