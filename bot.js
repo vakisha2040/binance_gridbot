@@ -915,22 +915,22 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
     // Use provided mainTrade if given, else get fresh from state
     const mainTrade = mainTradeArg || state.getMainTrade();
     if (!mainTrade) {
-        sendMessage(`[DEBUG] No mainTrade, skipping boundary update. Current mainTrade: ${JSON.stringify(state.getMainTrade())}`);
+        //sendMessage(`[DEBUG] No mainTrade, skipping boundary update. Current mainTrade: ${JSON.stringify(state.getMainTrade())}`);
         return;
     }
     if (boundaryLocked && !force) {
-        sendMessage("[DEBUG] Boundary is locked and not forced");
+       // sendMessage("[DEBUG] Boundary is locked and not forced");
         return;
     }
 
     const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
-    const minMove = config.boundaryStickyness || 0.10;
+    const minMove = config.boundaryStickyness ;
     const distance = Math.abs(price - currentBoundary);
 
-    sendMessage(`[DEBUG] price=${price} currentBoundary=${currentBoundary} distance=${distance} minMove=${minMove}`);
+ //   sendMessage(`[DEBUG] price=${price} currentBoundary=${currentBoundary} distance=${distance} minMove=${minMove}`);
 
     if (currentBoundary && distance < minMove) {
-        sendMessage("[DEBUG] Not enough movement to update boundary");
+     //   sendMessage("[DEBUG] Not enough movement to update boundary");
         return;
     }
 
@@ -943,7 +943,7 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
         );
 
     if (now - lastBoundaryUpdateTime < cooldown && !force) {
-        sendMessage(`[DEBUG] Cooldown not passed (${now - lastBoundaryUpdateTime}ms < ${cooldown}ms)`);
+       // sendMessage(`[DEBUG] Cooldown not passed (${now - lastBoundaryUpdateTime}ms < ${cooldown}ms)`);
         return;
     }
 
@@ -959,7 +959,7 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
     let boundaryUpdated = false;
     const trailingBoundary = proposedBoundary;
 
-    sendMessage(`[DEBUG] side=${mainTrade.side} extremeBoundary=${extremeBoundary} proposedBoundary=${proposedBoundary}`);
+ //   sendMessage(`[DEBUG] side=${mainTrade.side} extremeBoundary=${extremeBoundary} proposedBoundary=${proposedBoundary}`);
 
     if (mainTrade.side === 'Buy') {
         if (!extremeBoundary || proposedBoundary > extremeBoundary) {
@@ -967,9 +967,9 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
             boundaries.bottom = extremeBoundary;
             boundaries.top = null;
             boundaryUpdated = true;
-            sendMessage("[DEBUG] Buy: boundary updated");
+      //      sendMessage("[DEBUG] Buy: boundary updated");
         } else {
-            sendMessage("[DEBUG] Buy: proposed boundary not more extreme");
+     //       sendMessage("[DEBUG] Buy: proposed boundary not more extreme");
         }
     } else {
         if (!extremeBoundary || proposedBoundary < extremeBoundary) {
@@ -977,9 +977,9 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
             boundaries.top = extremeBoundary;
             boundaries.bottom = null;
             boundaryUpdated = true;
-            sendMessage("[DEBUG] Sell: boundary updated");
+          //  sendMessage("[DEBUG] Sell: boundary updated");
         } else {
-            sendMessage("[DEBUG] Sell: proposed boundary not more extreme");
+        //    sendMessage("[DEBUG] Sell: proposed boundary not more extreme");
         }
     }
 
@@ -1032,7 +1032,7 @@ function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainT
     const distance = Math.abs(currentPrice - lastReferencePrice);
 
     // For small moves, always move boundary DOWN regardless of side
-    if (distance <= (config.trailingThreshold || 0.4)) {
+    if (distance <= (config.trailingThreshold )) {
         return toPrecision(
             lastReferencePrice - config.newBoundarySpacing,
             config.pricePrecision
@@ -1043,7 +1043,7 @@ function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainT
     const rawAdjustment = 0.5 * (currentPrice - lastReferencePrice);
     const cappedAdjustment = Math.sign(rawAdjustment) * Math.min(
         Math.abs(rawAdjustment),
-        config.maxHedgeTrailDistance || 0.5
+        config.maxHedgeTrailDistance
     );
 
     // Debugging output for tracing calculation
