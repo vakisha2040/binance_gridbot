@@ -4,7 +4,7 @@
   "pricePrecision": 3,
   "stepSize": 0.001,
   "leverage": 70,
-  "orderSize": 0.70,
+  "orderSize": 0.90,
   "hedgeCooldownPeriod": 1000,
   "initialTradeSide": "Buy",
   "startPrice": null,
