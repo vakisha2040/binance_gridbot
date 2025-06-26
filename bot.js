@@ -333,14 +333,18 @@ async function monitorPrice() {
 
             // Trail if price moved favorably beyond threshold
             if (priceFromBoundary > (config.trailingThreshold)) {
-              setImmediateHedgeBoundary(price, true);
+            if (mainTrade && !hedgeTrade && !boundaryLocked) {
+    setImmediateHedgeBoundary(price, true, mainTrade);
+}
             }
 
             // Emergency boundary update if price moved too far
             const emergencyThreshold = (config.zeroLevelSpacing * 2);
             if (priceFromBoundary > emergencyThreshold) {
             //  sendMessage(`🚨 EMERGENCY BOUNDARY UPDATE (moved ${priceFromBoundary} from boundary)`);
-              setImmediateHedgeBoundary(price, true);
+              if (mainTrade && !hedgeTrade && !boundaryLocked) {
+    setImmediateHedgeBoundary(price, true, mainTrade);
+}
             }
           }
         }
@@ -371,8 +375,7 @@ if (!mainTrade && !hedgeTrade) {
     if (!boundaries.top && !boundaries.bottom) {
       await initializeFreshBoundaries();
     } else {
-   await  checkForNewTradeOpportunity(price);
-    }
+   await  initializeFreshBoundaries();
   }
 }
 
@@ -386,8 +389,8 @@ if (!mainTrade && !hedgeTrade) {
       // 6. PERIODIC BOUNDARY CHECK ===========================================
       if (now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL) {
         if (mainTrade && !hedgeTrade && !boundaryLocked) {
-          setImmediateHedgeBoundary(price, true);
-        }
+    setImmediateHedgeBoundary(price, true, mainTrade);
+}
         lastBoundaryUpdateTime = now;
       }
 
@@ -905,10 +908,14 @@ async function setImmediateHedgeBoundary(price, force = false) {
 
 */
 
-async function setImmediateHedgeBoundary(price, force = false) {
-    const mainTrade = state.getMainTrade();
+
+// Pass mainTrade as parameter to setImmediateHedgeBoundary for guaranteed sync
+
+async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = null) {
+    // Use provided mainTrade if given, else get fresh from state
+    const mainTrade = mainTradeArg || state.getMainTrade();
     if (!mainTrade) {
-        sendMessage("[DEBUG] No mainTrade, skipping boundary update");
+        sendMessage(`[DEBUG] No mainTrade, skipping boundary update. Current mainTrade: ${JSON.stringify(state.getMainTrade())}`);
         return;
     }
     if (boundaryLocked && !force) {
