@@ -999,6 +999,7 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
 }
 
 
+/*
 function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainTradeSide) {
     const distance = Math.abs(currentPrice - lastReferencePrice);
     let newBoundary;
@@ -1018,6 +1019,38 @@ function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainT
     const cappedAdjustment = Math.sign(rawAdjustment) * Math.min(
         Math.abs(rawAdjustment),
         config.maxHedgeTrailDistance || 0.5
+    );
+
+    return toPrecision(
+        lastReferencePrice + cappedAdjustment,
+        config.pricePrecision
+    );
+}
+*/
+
+function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainTradeSide) {
+    const distance = Math.abs(currentPrice - lastReferencePrice);
+
+    // For small moves, always move boundary DOWN regardless of side
+    if (distance <= (config.trailingThreshold || 0.4)) {
+        return toPrecision(
+            lastReferencePrice - config.newBoundarySpacing,
+            config.pricePrecision
+        );
+    }
+
+    // For significant moves, trail boundary toward price, capped by maxHedgeTrailDistance
+    const rawAdjustment = 0.5 * (currentPrice - lastReferencePrice);
+    const cappedAdjustment = Math.sign(rawAdjustment) * Math.min(
+        Math.abs(rawAdjustment),
+        config.maxHedgeTrailDistance || 0.5
+    );
+
+    // Debugging output for tracing calculation
+    sendMessage(
+      `[DEBUG] lastReferencePrice=${lastReferencePrice}, currentPrice=${currentPrice}, mainTradeSide=${mainTradeSide}, ` +
+      `distance=${distance}, rawAdjustment=${rawAdjustment}, cappedAdjustment=${cappedAdjustment}, ` +
+      `proposedBoundary=${lastReferencePrice + cappedAdjustment}, pricePrecision=${config.pricePrecision}, newBoundarySpacing=${config.newBoundarySpacing}, maxHedgeTrailDistance=${config.maxHedgeTrailDistance}, trailingThreshold=${config.trailingThreshold}`
     );
 
     return toPrecision(
