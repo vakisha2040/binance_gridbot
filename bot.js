@@ -390,7 +390,7 @@ if (!mainTrade && !hedgeTrade) {
       // 6. PERIODIC BOUNDARY CHECK ===========================================
       if (now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL) {
         if (mainTrade && !hedgeTrade && !boundaryLocked) {
-    setImmediateHedgeBoundary(price, true, mainTrade);
+   await setImmediateHedgeBoundary(price, true, mainTrade);
 }
         lastBoundaryUpdateTime = now;
       }
