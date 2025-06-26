@@ -1,7 +1,7 @@
 {
   "symbol": "SOLUSDT",
   "tickSize": 0.001,
-  "pricePrecision": 3,
+  "pricePrecision": 5,
   "stepSize": 0.001,
   "leverage": 70,
   "orderSize": 0.90,
