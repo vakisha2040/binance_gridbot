@@ -271,7 +271,7 @@ async function monitorPrice() {
 
             try {
               await openHedgeTrade('Sell', price);
-              sendMessage(`✅ Sell hedge opened at ${price}`);
+              //sendMessage(`✅ Sell hedge opened at ${price}`);
             } catch (e) {
               sendMessage(`❌ FAILED to open Sell hedge: ${e.message}`);
               // Schedule retry if still below boundary
@@ -304,7 +304,7 @@ async function monitorPrice() {
 
             try {
               await openHedgeTrade('Buy', price);
-              sendMessage(`✅ Buy hedge opened at ${price}`);
+              //sendMessage(`✅ Buy hedge opened at ${price}`);
             } catch (e) {
               sendMessage(`❌ FAILED to open Buy hedge: ${e.message}`);
               if (price >= effectiveBoundary) {
