@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { RestClientV5 } = require('bybit-api');
 const config = require('./config.json');
 
@@ -47,7 +48,7 @@ class BybitClient {
   async openMainTrade(side) {
     const tradeSide = BybitClient.formatSide(side);
     // Always set leverage before opening trade
-    await this.setLeverage(this.config.leverage || 3);
+    await this.setLeverage(this.config.leverage || 70);
     const order = {
       category: 'linear',
       symbol: this.config.symbol,
@@ -74,7 +75,7 @@ class BybitClient {
   async openHedgeTrade(side) {
     const tradeSide = BybitClient.formatSide(side);
     // Always set leverage before opening trade
-    await this.setLeverage(this.config.leverage || 3);
+    await this.setLeverage(this.config.leverage || 70);
     const order = {
       category: 'linear',
       symbol: this.config.symbol,
