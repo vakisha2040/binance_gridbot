@@ -757,11 +757,12 @@ async function initializeNewHedgeBoundaries() {
     if (mainTrade.side === 'Buy') {
       boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
       boundaries.top = null;
-      
+      let lastClose = boundaries.bottom;
       sendMessage(`🔵 For buy main trade - New hedge bottom boundary set at ${boundaries.bottom} (current: ${price})`);
     } else {
       boundaries.top = toPrecision(price + config.newBoundarySpacing);
       boundaries.bottom = null;
+      let lastClose = boundaries.top;
       sendMessage(`🔴 For sell main trade - New hedge top boundary set at ${boundaries.top} (current: ${price})`);
     }
   } else {
