@@ -2,6 +2,11 @@ require('dotenv').config();
 const { RestClientV5 } = require('bybit-api');
 const config = require('./config.json');
 
+let sendMessage = () => {};
+function setSendMessage(fn) {
+  sendMessage = fn;
+}
+
 class BybitClient {
   constructor(cfg = config, logger = console) {
     this.config = cfg;
