@@ -11,7 +11,7 @@ class BybitClient {
     this.client = new RestClientV5({
       key: cfg.apiKey || process.env.BYBIT_API_KEY,
       secret: cfg.apiSecret || process.env.BYBIT_API_SECRET,
-      testnet: !!cfg.testnet,
+      
     });
 
     this.hedgeModeEnabled = true;
