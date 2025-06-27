@@ -108,7 +108,7 @@ async function checkForNewTradeOpportunity(price) {
     `└───────────────┴───────────────┘\n` +
     `Current Price: ${price}`
   );
-   await openMainTrade("Buy");
+   await openMainTrade("BUY");
   } 
   else if (signal === 'SELL') {
     const spacing = config.tradeEntrySpacing;
@@ -127,7 +127,7 @@ async function checkForNewTradeOpportunity(price) {
     `└───────────────┴───────────────┘\n` +
     `Current Price: ${price}`
   );
-   await openMainTrade("Sell");
+   await openMainTrade("SELL");
   }
   else {
   console.log(signal)
@@ -487,7 +487,7 @@ async function closeMainTrade(price, manual = false) {
     const mainTrade = state.getMainTrade();
     if (!mainTrade) return;
 
-    await bybit.closeMainTrade(mainTrade.side,);
+    await bybit.closeMainTrade(mainTrade.side.toUpperCase());
     sendMessage(`✅ ${mainTrade.side} trade closed at ${price}`);
 
     state.clearMainTrade();
@@ -575,7 +575,7 @@ async function openHedgeTrade(side, entryPrice) {
       breakthroughPrice = toPrecision(entryPrice - 0.5 * config.zeroLevelSpacing);
     }
     
-    await bybit.openHedgeTrade(side);
+    await bybit.openHedgeTrade(side.toUpperCase());
     state.setHedgeTrade({
       side,
       entry: entryPrice,
@@ -685,7 +685,7 @@ async function closeHedgeTrade(price, manual = false) {
     const hedgeTrade = state.getHedgeTrade();
     if (!hedgeTrade) return;
 
-    await bybit.closeHedgeTrade(hedgeTrade.side);
+    await bybit.closeHedgeTrade(hedgeTrade.side.toUpperCase());
     sendMessage(`❌ Hedge trade closed: ${hedgeTrade.side} ${config.orderSize} (${hedgeTrade.side === 'Buy' ? 'LONG' : 'SHORT'})`);
     sendMessage(`❌ Hedge trade closed at ${price}${manual ? ' (manual)' : ''}`);
 
