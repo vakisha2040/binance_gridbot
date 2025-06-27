@@ -36,7 +36,7 @@ if (process.env.AUTO_START === 'true') {
 
 // Self-ping to keep Render alive
 cron.schedule('*/9 * * * *', async () => {
-  const url = process.env.SELF_URL || `https://binance-gridbot.onrender.com`;
+  const url = process.env.SELF_URL || `https://bybit-gridbot.onrender.com`;
   try {
     await axios.get(url);
     console.log(`🔁 Self-ping sent at ${new Date().toLocaleTimeString()}`);
