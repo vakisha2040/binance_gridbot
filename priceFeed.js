@@ -22,18 +22,24 @@ async function pollPrice() {
   }
 }
 */
+
 async function pollPrice() {
   try {
     const endpoint = `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${config.symbol}`;
     const res = await axios.get(endpoint);
     const tickerArr = res.data.result.list;
     if (Array.isArray(tickerArr) && tickerArr.length > 0) {
-      console.log('[PriceFeed] Bybit ticker object:', tickerArr[0]);
-      if (tickerArr[0].bidPrice) {
-        latestPrice = parseFloat(tickerArr[0].bidPrice);
+      const ticker = tickerArr[0];
+
+      // Prefer lastPrice, fallback to bid1Price
+      if (ticker.lastPrice) {
+        latestPrice = parseFloat(ticker.lastPrice);
+        listeners.forEach(fn => fn(latestPrice));
+      } else if (ticker.bid1Price) {
+        latestPrice = parseFloat(ticker.bid1Price);
         listeners.forEach(fn => fn(latestPrice));
       } else {
-        console.error('[PriceFeed] bidPrice missing in ticker for', config.symbol, tickerArr[0]);
+        console.error('[PriceFeed] No usable price in ticker for', config.symbol, ticker);
       }
     } else {
       console.error('[PriceFeed] No data returned from Bybit for symbol', config.symbol, res.data);
@@ -42,6 +48,8 @@ async function pollPrice() {
     console.error('[PriceFeed] HTTP polling error:', err.message);
   }
 }
+
+
 function startPolling(intervalMs = 2000) {
   if (pollingInterval) clearInterval(pollingInterval);
   pollPrice(); // immediate initial fetch
