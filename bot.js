@@ -1045,7 +1045,7 @@ function calculateTrailingHedgeOpenPrice(lastReferencePrice, currentPrice, mainT
     }
 
     // For significant moves, trail boundary toward price, capped by maxHedgeTrailDistance
-    const rawAdjustment = 0.75 * (currentPrice - lastReferencePrice);
+    const rawAdjustment = 0.5 * (currentPrice - lastReferencePrice);
     const cappedAdjustment = Math.sign(rawAdjustment) * Math.min(
         Math.abs(rawAdjustment),
         config.maxHedgeTrailDistance
