@@ -1,6 +1,5 @@
 require('dotenv').config();
-//const { WebsocketClient, RestClient } = require('bybit-api');
-const { RestClient } = require('bybit-api');
+const { RestClientV5 } = require('bybit-api');
 const config = require('./config.json');
 
 class BybitClient {
@@ -9,8 +8,8 @@ class BybitClient {
     this.logger = logger;
     this.sendMessage = () => {};
 
-    // Use RestClient as a function, not a class
-    this.client = RestClient({
+    // Corrected: new RestClientV5, not RestClient!
+    this.client = new RestClientV5({
       key: cfg.apiKey || process.env.BYBIT_API_KEY,
       secret: cfg.apiSecret || process.env.BYBIT_API_SECRET,
       testnet: !!cfg.testnet,
