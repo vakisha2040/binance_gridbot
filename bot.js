@@ -134,7 +134,7 @@ async function initializeBoundaries() {
   }
   const mainTrade = state.getMainTrade();
   if (mainTrade) {
-    if (mainTrade.side === 'BUY') {
+    if (mainTrade.side === 'Buy') {
       boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
       boundaries.top = null;
       sendMessage(`🔵 Buy main trade - bottom boundary set at ${boundaries.bottom} (current: ${price})`);
@@ -167,24 +167,24 @@ async function monitorPrice() {
 
       // Hedge trade opening logic
       if (!hedgeTrade && !hedgeOpeningInProgress && !inCooldown) {
-        if (mainTrade?.side === 'BUY' && boundaries.bottom) {
+        if (mainTrade?.side === 'Buy' && boundaries.bottom) {
           const effectiveBoundary = boundaries.bottom + config.boundaryTolerance;
           if (price <= effectiveBoundary) {
             hedgeOpeningInProgress = true;
             try {
-              await openHedgeTrade('SELL', price);
+              await openHedgeTrade('Sell', price);
             } catch (e) {
               sendMessage(`❌ FAILED to open Sell hedge: ${e.message}`);
             } finally {
               hedgeOpeningInProgress = false;
             }
           }
-        } else if (mainTrade?.side === 'SELL' && boundaries.top) {
+        } else if (mainTrade?.side === 'Sell' && boundaries.top) {
           const effectiveBoundary = boundaries.top - config.boundaryTolerance;
           if (price >= effectiveBoundary) {
             hedgeOpeningInProgress = true;
             try {
-              await openHedgeTrade('BUY', price);
+              await openHedgeTrade('Buy', price);
             } catch (e) {
               sendMessage(`❌ FAILED to open Buy hedge: ${e.message}`);
             } finally {
@@ -197,9 +197,9 @@ async function monitorPrice() {
       if (mainTrade) {
         await handleMainTrade(price);
         if (!hedgeTrade && !boundaryLocked) {
-          const currentBoundary = mainTrade.side === 'BUY' ? boundaries.bottom : boundaries.top;
+          const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
           if (currentBoundary) {
-            const priceFromBoundary = mainTrade.side === 'BUY'
+            const priceFromBoundary = mainTrade.side === 'Buy'
               ? price - currentBoundary
               : currentBoundary - price;
 
@@ -249,7 +249,8 @@ async function monitorPrice() {
 
 async function openMainTrade(side, entryPrice) {
   try {
-    const tradeSide = side.toUpperCase();
+    // Always use "Buy" or "Sell"
+    const tradeSide = side.toUpperCase() === 'BUY' ? 'Buy' : 'Sell';
     await bybit.openMainTrade(tradeSide);
     state.setMainTrade({
       side: tradeSide,
@@ -274,14 +275,14 @@ async function handleMainTrade(price) {
   const mainTrade = state.getMainTrade();
   if (!mainTrade) return;
 
-  const direction = mainTrade.side === 'BUY' ? 1 : -1;
+  const direction = mainTrade.side === 'Buy' ? 1 : -1;
   const currentLevel = mainTrade.level;
   const nextLevelPrice = toPrecision(
     mainTrade.entry + direction * getGridSpacing(currentLevel) * (currentLevel + 1)
   );
 
-  if ((mainTrade.side === 'BUY' && price >= nextLevelPrice) ||
-    (mainTrade.side === 'SELL' && price <= nextLevelPrice)) {
+  if ((mainTrade.side === 'Buy' && price >= nextLevelPrice) ||
+    (mainTrade.side === 'Sell' && price <= nextLevelPrice)) {
     const previousLevel = currentLevel;
     mainTrade.level += 1;
     sendMessage(`📊 Main trade reached level ${mainTrade.level} at ${price}`);
@@ -296,8 +297,8 @@ async function handleMainTrade(price) {
 
   if (mainTrade.level >= 1 && mainTrade.stopLoss !== null) {
     if (mainTrade.breakthroughPrice !== undefined && mainTrade.breakthroughPrice !== null) {
-      if ((mainTrade.side === 'BUY' && price > mainTrade.breakthroughPrice) ||
-        (mainTrade.side === 'SELL' && price < mainTrade.breakthroughPrice)) {
+      if ((mainTrade.side === 'Buy' && price > mainTrade.breakthroughPrice) ||
+        (mainTrade.side === 'Sell' && price < mainTrade.breakthroughPrice)) {
         sendMessage(`🚦 Breakthrough price (${mainTrade.breakthroughPrice}) crossed. Stoploss is now active.`);
         mainTrade.breakthroughPrice = null;
       } else {
@@ -305,8 +306,8 @@ async function handleMainTrade(price) {
       }
     }
 
-    if ((mainTrade.side === 'BUY' && price <= mainTrade.stopLoss) ||
-      (mainTrade.side === 'SELL' && price >= mainTrade.stopLoss)) {
+    if ((mainTrade.side === 'Buy' && price <= mainTrade.stopLoss) ||
+      (mainTrade.side === 'Sell' && price >= mainTrade.stopLoss)) {
       await closeMainTrade(price, false);
       return;
     }
@@ -314,10 +315,10 @@ async function handleMainTrade(price) {
 
   if (!state.getHedgeTrade() && !hedgeOpeningInProgress &&
     Date.now() > hedgeCooldownUntil && mainTrade.level === 0 &&
-    ((mainTrade.side === 'BUY' && price <= boundaries.bottom) ||
-      (mainTrade.side === 'SELL' && price >= boundaries.top))) {
+    ((mainTrade.side === 'Buy' && price <= boundaries.bottom) ||
+      (mainTrade.side === 'Sell' && price >= boundaries.top))) {
     hedgeOpeningInProgress = true;
-    await openHedgeTrade(mainTrade.side === 'BUY' ? 'SELL' : 'BUY', price);
+    await openHedgeTrade(mainTrade.side === 'Buy' ? 'Sell' : 'Buy', price);
     hedgeOpeningInProgress = false;
   }
 }
@@ -350,12 +351,12 @@ function initializeHedgePromotionBoundary() {
     sendMessage('⚠️ Unable to get current price or trade info for boundaries.');
     return;
   }
-  if (mainTrade.side === 'BUY') {
+  if (mainTrade.side === 'Buy') {
     boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
     boundaries.top = null;
     saveBoundary({ trailingBoundary, boundaries });
     sendMessage(`🔲 (Hedge->Main) Bottom boundary set: ${boundaries.bottom}`);
-  } else if (mainTrade.side === 'SELL') {
+  } else if (mainTrade.side === 'Sell') {
     boundaries.top = toPrecision(price + config.newBoundarySpacing);
     boundaries.bottom = null;
     saveBoundary({ trailingBoundary, boundaries });
@@ -386,22 +387,23 @@ async function openHedgeTrade(side, entryPrice) {
 
   const mainTrade = state.getMainTrade();
   if (mainTrade) {
-    if (mainTrade.side === 'BUY' && side === 'SELL' && (!boundaries.bottom || entryPrice > boundaries.bottom)) {
+    if (mainTrade.side === 'Buy' && side === 'Sell' && (!boundaries.bottom || entryPrice > boundaries.bottom)) {
       return;
-    } else if (mainTrade.side === 'SELL' && side === 'BUY' && (!boundaries.top || entryPrice < boundaries.top)) {
+    } else if (mainTrade.side === 'Sell' && side === 'Buy' && (!boundaries.top || entryPrice < boundaries.top)) {
       return;
     }
   }
 
   try {
     let breakthroughPrice = null;
-    if (side === 'BUY') {
+    if (side.toUpperCase() === 'BUY') {
       breakthroughPrice = toPrecision(entryPrice + 0.5 * config.zeroLevelSpacing);
     } else {
       breakthroughPrice = toPrecision(entryPrice - 0.5 * config.zeroLevelSpacing);
     }
 
-    const hedgeSide = side.toUpperCase();
+    const hedgeSide = side.toUpperCase() === 'BUY' ? 'Buy' : 'Sell';
+
     await bybit.openHedgeTrade(hedgeSide);
     state.setHedgeTrade({
       side: hedgeSide,
@@ -426,14 +428,14 @@ async function handleHedgeTrade(price) {
   const hedgeTrade = state.getHedgeTrade();
   if (!hedgeTrade) return;
 
-  const direction = hedgeTrade.side === 'BUY' ? 1 : -1;
+  const direction = hedgeTrade.side === 'Buy' ? 1 : -1;
   const currentLevel = hedgeTrade.level;
   const nextLevelPrice = toPrecision(
     hedgeTrade.entry + direction * getGridSpacing(currentLevel) * (currentLevel + 1)
   );
 
-  if ((hedgeTrade.side === 'BUY' && price >= nextLevelPrice) ||
-    (hedgeTrade.side === 'SELL' && price <= nextLevelPrice)) {
+  if ((hedgeTrade.side === 'Buy' && price >= nextLevelPrice) ||
+    (hedgeTrade.side === 'Sell' && price <= nextLevelPrice)) {
     const previousLevel = currentLevel;
     hedgeTrade.level += 1;
     sendMessage(`📊 Hedge trade reached level ${hedgeTrade.level} at ${price}`);
@@ -447,8 +449,8 @@ async function handleHedgeTrade(price) {
   }
 
   if (hedgeTrade.level >= 1 && hedgeTrade.stopLoss !== null) {
-    if ((hedgeTrade.side === 'BUY' && price <= hedgeTrade.stopLoss) ||
-      (hedgeTrade.side === 'SELL' && price >= hedgeTrade.stopLoss)) {
+    if ((hedgeTrade.side === 'Buy' && price <= hedgeTrade.stopLoss) ||
+      (hedgeTrade.side === 'Sell' && price >= hedgeTrade.stopLoss)) {
       await closeHedgeTrade(price);
       return;
     }
@@ -461,7 +463,7 @@ async function killHedge() {
   const currentPrice = getCurrentPrice();
   if (!currentPrice) return;
 
-  const isBuy = hedge.side === 'BUY';
+  const isBuy = hedge.side === 'Buy';
   const entry = hedge.entry;
   const HBP = config.hedgeBreakthroughPrice || 100;
   const killSpacing = config.hedgeKillSpacing || 20;
@@ -512,7 +514,7 @@ async function closeHedgeTrade(price, manual = false) {
     const hedgeTrade = state.getHedgeTrade();
     if (!hedgeTrade) return;
     await bybit.closeHedgeTrade(hedgeTrade.side);
-    sendMessage(`❌ Hedge trade closed: ${hedgeTrade.side} ${config.orderSize} (${hedgeTrade.side === 'BUY' ? 'LONG' : 'SHORT'})`);
+    sendMessage(`❌ Hedge trade closed: ${hedgeTrade.side} ${config.orderSize} (${hedgeTrade.side === 'Buy' ? 'LONG' : 'SHORT'})`);
     sendMessage(`❌ Hedge trade closed at ${price}${manual ? ' (manual)' : ''}`);
 
     const wasKilled = hedgeTrade.killTriggered;
@@ -546,7 +548,7 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
   if (!mainTrade) return;
   if (boundaryLocked && !force) return;
 
-  const currentBoundary = mainTrade.side === 'BUY' ? boundaries.bottom : boundaries.top;
+  const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
   const minMove = config.boundaryStickyness;
   const distance = Math.abs(price - currentBoundary);
 
@@ -563,7 +565,7 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
   if (now - lastBoundaryUpdateTime < cooldown && !force) return;
   lastBoundaryUpdateTime = now;
 
-  let lastClose = mainTrade.side === 'BUY'
+  let lastClose = mainTrade.side === 'Buy'
     ? boundaries.bottom
     : boundaries.top;
 
@@ -576,7 +578,7 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
   let boundaryUpdated = false;
   const trailingBoundary = proposedBoundary;
 
-  if (mainTrade.side === 'BUY') {
+  if (mainTrade.side === 'Buy') {
     if (!extremeBoundary || proposedBoundary > extremeBoundary) {
       extremeBoundary = proposedBoundary;
       boundaries.bottom = extremeBoundary;
@@ -594,7 +596,7 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
 
   if (boundaryUpdated) {
     await saveBoundary({ trailingBoundary, boundaries });
-    const direction = mainTrade.side === 'BUY' ? 'up' : 'down';
+    const direction = mainTrade.side === 'Buy' ? 'up' : 'down';
     sendMessage(
       `🔄 One-way boundary trailed ${direction}\n` +
       `🟥 Type: ${mainTrade.side} Main Trade\n` +
