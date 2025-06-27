@@ -108,6 +108,25 @@ class BybitClient {
         positionIdx,
         reduceOnly: false,
       });
+      console.log("Submitting order:", {
+  category: 'linear',
+  symbol,
+  side,
+  orderType: 'Market',
+  qty,
+  positionIdx,
+  reduceOnly: false,
+});
+
+      console.log("Order payload:", {
+  category: 'linear',
+  symbol,
+  side,
+  orderType: 'Market',
+  qty,
+  positionIdx,
+  reduceOnly: false,
+});
       this.logger.info(`Main trade opened: ${side} ${qty} (positionIdx: ${positionIdx})`, order);
       this.sendMessage?.(`📈 Main trade opened: ${side} ${qty} (positionIdx: ${positionIdx})`);
       return order;
