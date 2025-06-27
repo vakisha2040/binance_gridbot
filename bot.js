@@ -727,7 +727,7 @@ function checkAndTrailBoundaries(price) {
   const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
   
   if (!currentBoundary) {
-   await setImmediateHedgeBoundary(price, true);
+   //await setImmediateHedgeBoundary(price, true);
     return;
   }
 
@@ -738,7 +738,7 @@ function checkAndTrailBoundaries(price) {
 
   // Trail if price has moved favorably
   if (distance > (config.trailingThreshold || 50)) {
-   await setImmediateHedgeBoundary(price);
+  // await setImmediateHedgeBoundary(price);
   }
 }
 
