@@ -5,16 +5,16 @@ let latestPrice = 0;
 let listeners = [];
 let pollingInterval = null;
 
-// Binance endpoint for latest price (ticker book ticker, USDT-M futures)
+// Bybit endpoint for latest price (ticker book ticker, USDT Perpetual)
 async function pollPrice() {
   try {
-    // Binance USDT-M Futures API endpoint for bookTicker
-    // Example: https://fapi.binance.com/fapi/v1/ticker/bookTicker?symbol=DOGEUSDT
-    const endpoint = `https://fapi.binance.com/fapi/v1/ticker/bookTicker?symbol=${config.symbol}`;
+    // Bybit USDT Perpetual API endpoint for best bid/ask price
+    // Example: https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT
+    const endpoint = `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${config.symbol}`;
     const res = await axios.get(endpoint);
-    const ticker = res.data;
-    if (ticker && ticker.bidPrice) {
-      latestPrice = parseFloat(ticker.bidPrice);
+    const tickerArr = res.data.result.list;
+    if (Array.isArray(tickerArr) && tickerArr.length > 0 && tickerArr[0].bidPrice) {
+      latestPrice = parseFloat(tickerArr[0].bidPrice);
       listeners.forEach(fn => fn(latestPrice));
     }
   } catch (err) {
