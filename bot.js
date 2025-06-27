@@ -288,7 +288,7 @@ async function monitorPrice() {
         }
         // For Sell main trades (need Buy hedge)
         else if (mainTrade?.side === 'Sell' && boundaries.top) {
-          const effectiveBoundary = boundaries.top - (config.boundaryTolerance || 1.0);
+          const effectiveBoundary = boundaries.top - (config.boundaryTolerance);
           
           if (price >= effectiveBoundary) {
             hedgeOpeningInProgress = true;
