@@ -82,166 +82,117 @@ class BybitClient {
     }
   }
 
-  validateSide(side) {
-    const validSides = ['BUY', 'SELL'];
-    if (!validSides.includes(side)) {
-      throw new Error(`Invalid side: "${side}". Must be "BUY" or "SELL".`);
-    }
+  static formatSide(side) {
+    if (typeof side !== 'string') return side;
+    return side.toUpperCase() === 'BUY' ? 'Buy'
+         : side.toUpperCase() === 'SELL' ? 'Sell'
+         : side;
   }
 
+
+
+  // Open main trade
   async openMainTrade(side) {
+    const tradeSide = BybitClient.formatSide(side);
+    const order = {
+      category: 'linear',
+      symbol: this.config.symbol,
+      side: tradeSide, // must be "Buy" or "Sell"
+      orderType: 'Market',
+      qty: String(this.config.orderSize),
+      positionIdx: tradeSide === 'Buy' ? 1 : 2, // 1=Buy, 2=Sell in hedge mode
+      reduceOnly: false,
+    };
+    this.logger.log('Submitting order:', order);
     try {
-      const symbol = this.config.symbol;
-      const qty = this.config.orderSize;
-      side = String(side).toUpperCase();
-      this.validateSide(side);
-      await this.enableHedgeMode();
-      await this.setLeverage();
-
-      const positionIdx = side === 'BUY' ? 1 : 2;
-      const order = await this.client.submitOrder({
-        category: 'linear',
-        symbol,
-        side,
-        orderType: 'Market',
-        qty,
-        positionIdx,
-        reduceOnly: false,
-      });
-      console.log("Submitting order:", {
-  category: 'linear',
-  symbol,
-  side,
-  orderType: 'Market',
-  qty,
-  positionIdx,
-  reduceOnly: false,
-});
-
-      console.log("Order payload:", {
-  category: 'linear',
-  symbol,
-  side,
-  orderType: 'Market',
-  qty,
-  positionIdx,
-  reduceOnly: false,
-});
-      this.logger.info(`Main trade opened: ${side} ${qty} (positionIdx: ${positionIdx})`, order);
-      this.sendMessage?.(`📈 Main trade opened: ${side} ${qty} (positionIdx: ${positionIdx})`);
-      return order;
+      const res = await this.client.submitOrder(order);
+      this.logger.log('Order payload:', order);
+      this.logger.log('Main trade opened:', tradeSide, order.qty, `(positionIdx: ${order.positionIdx})`, res);
+      if (sendMessage) sendMessage(`Main trade opened: ${tradeSide} ${order.qty} (positionIdx: ${order.positionIdx})`);
+      return res;
     } catch (e) {
-      this.logger.error('Failed to open main trade', e);
-      this.sendMessage?.(`❌ Failed to open main trade: ${e.message}`);
+      this.logger.error('Failed to open main trade:', e.message);
       throw e;
     }
   }
 
-  async closeMainTrade(side) {
-    try {
-      const symbol = this.config.symbol;
-      const qty = this.config.orderSize;
-      side = String(side).toUpperCase();
-      this.validateSide(side);
-      await this.enableHedgeMode();
-
-      const positionIdx = side === 'BUY' ? 1 : 2;
-      const closeSide = side === 'BUY' ? 'SELL' : 'BUY';
-
-      const positions = await this.client.getPositions({ category: 'linear', symbol });
-      const pos = positions.result.list.find(p => Number(p.positionIdx) === positionIdx);
-      if (!pos || Number(pos.size) === 0) {
-        this.logger.info(`No position to close on positionIdx ${positionIdx}`);
-        this.sendMessage?.(`ℹ️ No position to close (${positionIdx === 1 ? 'LONG' : 'SHORT'}).`);
-        return null;
-      }
-      const closeQty = Math.min(Math.abs(Number(pos.size)), Number(qty));
-
-      const order = await this.client.submitOrder({
-        category: 'linear',
-        symbol,
-        side: closeSide,
-        orderType: 'Market',
-        qty: closeQty,
-        positionIdx,
-        reduceOnly: true,
-      });
-      this.logger.info(`Main trade closed: ${closeSide} ${closeQty} (positionIdx: ${positionIdx})`, order);
-      this.sendMessage?.(`❌ Main trade closed: ${closeSide} ${closeQty} (positionIdx: ${positionIdx})`);
-      return order;
-    } catch (e) {
-      this.logger.error('Failed to close main trade', e);
-      this.sendMessage?.(`❌ Failed to close main trade: ${e.message}`);
-      throw e;
-    }
-  }
-
+  // Open hedge trade
   async openHedgeTrade(side) {
+    const tradeSide = BybitClient.formatSide(side);
+    const order = {
+      category: 'linear',
+      symbol: this.config.symbol,
+      side: tradeSide,
+      orderType: 'Market',
+      qty: String(this.config.orderSize),
+      positionIdx: tradeSide === 'Buy' ? 1 : 2, // 1=Buy/long, 2=Sell/short
+      reduceOnly: false,
+    };
+    this.logger.log('Submitting hedge order:', order);
     try {
-      const symbol = this.config.symbol;
-      const qty = this.config.orderSize;
-      side = String(side).toUpperCase();
-      this.validateSide(side);
-      await this.enableHedgeMode();
-      await this.setLeverage();
-      const positionIdx = side === 'BUY' ? 1 : 2;
-      const order = await this.client.submitOrder({
-        category: 'linear',
-        symbol,
-        side,
-        orderType: 'Market',
-        qty,
-        positionIdx,
-        reduceOnly: false,
-      });
-      this.logger.info(`Hedge trade opened: ${side} ${qty} (positionIdx: ${positionIdx})`, order);
-      this.sendMessage?.(`🛡️ Hedge trade opened: ${side} ${qty} (positionIdx: ${positionIdx})`);
-      return order;
+      const res = await this.client.submitOrder(order);
+      this.logger.log('Hedge order payload:', order);
+      this.logger.log('Hedge trade opened:', tradeSide, order.qty, `(positionIdx: ${order.positionIdx})`, res);
+      if (sendMessage) sendMessage(`Hedge trade opened: ${tradeSide} ${order.qty} (positionIdx: ${order.positionIdx})`);
+      return res;
     } catch (e) {
-      this.logger.error('Failed to open hedge trade', e);
-      this.sendMessage?.(`❌ Failed to open hedge trade: ${e.message}`);
+      this.logger.error('Failed to open hedge trade:', e.message);
       throw e;
     }
   }
 
+  // Close main trade
+  async closeMainTrade(side) {
+    const tradeSide = BybitClient.formatSide(side);
+    const order = {
+      category: 'linear',
+      symbol: this.config.symbol,
+      side: tradeSide === 'Buy' ? 'Sell' : 'Buy',
+      orderType: 'Market',
+      qty: String(this.config.orderSize),
+      positionIdx: tradeSide === 'Buy' ? 1 : 2,
+      reduceOnly: true,
+    };
+    this.logger.log('Submitting close main trade order:', order);
+    try {
+      const res = await this.client.submitOrder(order);
+      this.logger.log('Closed main trade:', tradeSide, order.qty, `(positionIdx: ${order.positionIdx})`, res);
+      if (sendMessage) sendMessage(`Closed main trade: ${tradeSide} ${order.qty} (positionIdx: ${order.positionIdx})`);
+      return res;
+    } catch (e) {
+      this.logger.error('Failed to close main trade:', e.message);
+      throw e;
+    }
+  }
+
+  // Close hedge trade
   async closeHedgeTrade(side) {
+    const tradeSide = BybitClient.formatSide(side);
+    const order = {
+      category: 'linear',
+      symbol: this.config.symbol,
+      side: tradeSide === 'Buy' ? 'Sell' : 'Buy',
+      orderType: 'Market',
+      qty: String(this.config.orderSize),
+      positionIdx: tradeSide === 'Buy' ? 1 : 2,
+      reduceOnly: true,
+    };
+    this.logger.log('Submitting close hedge trade order:', order);
     try {
-      const symbol = this.config.symbol;
-      const qty = this.config.orderSize;
-      side = String(side).toUpperCase();
-      this.validateSide(side);
-      await this.enableHedgeMode();
-      const positionIdx = side === 'BUY' ? 1 : 2;
-      const closeSide = side === 'BUY' ? 'SELL' : 'BUY';
-
-      const positions = await this.client.getPositions({ category: 'linear', symbol });
-      const pos = positions.result.list.find(p => Number(p.positionIdx) === positionIdx);
-      if (!pos || Number(pos.size) === 0) {
-        this.logger.info(`No position to close on positionIdx ${positionIdx}`);
-        this.sendMessage?.(`ℹ️ No position to close (${positionIdx === 1 ? 'LONG' : 'SHORT'}).`);
-        return null;
-      }
-      const closeQty = Math.min(Math.abs(Number(pos.size)), Number(qty));
-
-      const order = await this.client.submitOrder({
-        category: 'linear',
-        symbol,
-        side: closeSide,
-        orderType: 'Market',
-        qty: closeQty,
-        positionIdx,
-        reduceOnly: true,
-      });
-      this.logger.info(`Hedge trade closed: ${closeSide} ${closeQty} (positionIdx: ${positionIdx})`, order);
-      this.sendMessage?.(`❌ Hedge trade closed: ${closeSide} ${closeQty} (positionIdx: ${positionIdx})`);
-      return order;
+      const res = await this.client.submitOrder(order);
+      this.logger.log('Closed hedge trade:', tradeSide, order.qty, `(positionIdx: ${order.positionIdx})`, res);
+      if (sendMessage) sendMessage(`Closed hedge trade: ${tradeSide} ${order.qty} (positionIdx: ${order.positionIdx})`);
+      return res;
     } catch (e) {
-      this.logger.error('Failed to close hedge trade', e);
-      this.sendMessage?.(`❌ Failed to close hedge trade: ${e.message}`);
+      this.logger.error('Failed to close hedge trade:', e.message);
       throw e;
     }
   }
 
+
+
+  
+  
   async cancelAllOrders() {
     try {
       const symbol = this.config.symbol;
