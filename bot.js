@@ -516,11 +516,13 @@ function initializeHedgePromotionBoundary() {
   if (mainTrade.side === 'Buy') {
     boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
     boundaries.top = null;
+   let lastClose = boundaries.bottom;
     saveBoundary({ trailingBoundary, boundaries });
     sendMessage(`🔲 (Hedge->Main) Bottom boundary set: ${boundaries.bottom}`);
   } else if (mainTrade.side === 'Sell') {
     boundaries.top = toPrecision(price + config.newBoundarySpacing);
     boundaries.bottom = null;
+    let lastClose = boundaries.top;
     saveBoundary({ trailingBoundary, boundaries });
     sendMessage(`🔲 (Hedge->Main) Top boundary set: ${boundaries.top}`);
   }
@@ -755,6 +757,7 @@ async function initializeNewHedgeBoundaries() {
     if (mainTrade.side === 'Buy') {
       boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
       boundaries.top = null;
+      
       sendMessage(`🔵 For buy main trade - New hedge bottom boundary set at ${boundaries.bottom} (current: ${price})`);
     } else {
       boundaries.top = toPrecision(price + config.newBoundarySpacing);
@@ -768,7 +771,7 @@ async function initializeNewHedgeBoundaries() {
   }
 
   saveBoundary({ trailingBoundary, boundaries });
-await setImmediateHedgeBoundary(price, true);
+//await setImmediateHedgeBoundary(price, true);
 }
 
 /*
