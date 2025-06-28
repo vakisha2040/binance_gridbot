@@ -543,6 +543,37 @@ async function closeHedgeTrade(price, manual = false) {
   }
 }
 
+async function initializeNewHedgeBoundaries() {
+  const price = getCurrentPrice();
+  if (!price) {
+    sendMessage('⚠️ Unable to get current price to set boundaries.');
+    return;
+  }
+
+  const mainTrade = state.getMainTrade();
+  if (mainTrade) {
+    if (mainTrade.side === 'Buy') {
+      boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
+      boundaries.top = null;
+      let lastClose = boundaries.bottom;
+      sendMessage(`🔵 For buy main trade - New hedge bottom boundary set at ${boundaries.bottom} (current: ${price})`);
+    } else {
+      boundaries.top = toPrecision(price + config.newBoundarySpacing);
+      boundaries.bottom = null;
+      let lastClose = boundaries.top;
+      sendMessage(`🔴 For sell main trade - New hedge top boundary set at ${boundaries.top} (current: ${price})`);
+    }
+  } else {
+   // boundaries.top = toPrecision(price + config.tradeEntrySpacing);
+    //boundaries.bottom = toPrecision(price - config.tradeEntrySpacing);
+    sendMessage(`⚪ No main trade - boundaries set at ${boundaries.bottom}-${boundaries.top} (current: ${price})`);
+  }
+
+  saveBoundary({ trailingBoundary, boundaries });
+//await setImmediateHedgeBoundary(price, true);
+}
+
+
 async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = null) {
   const mainTrade = mainTradeArg || state.getMainTrade();
   if (!mainTrade) return;
