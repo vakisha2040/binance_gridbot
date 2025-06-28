@@ -33,13 +33,13 @@ let boundaryLocked = false;
 let hedgeOpeningInProgress = false;
 let hedgeCooldownUntil = 0;
 let extremeBoundary = null;
-
+let lastClose = null;
 function getGridSpacing(level) {
   return level === 0 ? config.zeroLevelSpacing : config.gridSpacing;
 }
 
 async function initializeFreshBoundaries() {
-  boundaryLocked = false;
+  boundaryLocked = true;
   const price = getCurrentPrice();
   if (!price) {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
@@ -375,6 +375,7 @@ function promoteHedgeToMain() {
   state.setMainTrade(hedge);
   state.clearHedgeTrade();
   boundaryLocked = false;
+  lastClose = price;
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
   initializeHedgePromotionBoundary();
 }
