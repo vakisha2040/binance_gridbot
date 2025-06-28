@@ -67,7 +67,7 @@ async function checkForNewTradeOpportunity(price) {
       `└───────────────┴───────────────┘\n` +
       `Current Price: ${price}`
     );
-    await openMainTrade(signal);
+    await openMainTrade(signal, price);
   } else {
     console.log(signal);
   }
