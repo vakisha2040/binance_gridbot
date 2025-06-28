@@ -55,7 +55,7 @@ function getGridSpacing(level) {
 
 
 async function initializeFreshBoundaries() {
-  boundaryLocked = false;   
+  boundaryLocked = true;   
   const price = getCurrentPrice();
   if (!price) {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
@@ -541,6 +541,7 @@ function promoteHedgeToMain() {
   lastHedgeClosePrice = hedge.entry;
   hedgeCooldownUntil = 0;
   boundaryLocked = false;
+  lastClose = price;
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
   initializeHedgePromotionBoundary();
 } 
