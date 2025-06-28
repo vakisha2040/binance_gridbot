@@ -57,16 +57,16 @@ function getMacdSignal(closes) {
 
 async function analyze() {
   const [closes1m, closes3m, closes5m] = await Promise.all([
-    fetchCloses('1m'),
     fetchCloses('3m'),
     fetchCloses('5m'),
+    fetchCloses('15m'),
   ]);
 
   const emaSignal1m = getEmaSignal(closes1m);
   const emaSignal3m = getEmaSignal(closes3m);
   const macdSignal5m = getMacdSignal(closes5m);
 
-  console.log(`📊 1m EMA: ${emaSignal1m}, 3m EMA: ${emaSignal3m}, 5m MACD: ${macdSignal5m}`);
+  console.log(`📊 3m EMA: ${emaSignal1m}, 5m EMA: ${emaSignal3m}, 15m MACD: ${macdSignal5m}`);
 
   // Only confirm trade if ALL agree
   if (
