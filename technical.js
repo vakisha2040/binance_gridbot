@@ -66,7 +66,7 @@ async function analyze() {
   const emaSignal3m = getEmaSignal(closes3m);
   const macdSignal5m = getMacdSignal(closes5m);
 
-  console.log(`📊 1m EMA: ${emaSignal1m}, 3m EMA: ${emaSignal3m}, 5m MACD: ${macdSignal5m}`);
+  console.log(`📊 3m EMA: ${emaSignal1m}, 5m EMA: ${emaSignal3m}, 15m MACD: ${macdSignal5m}`);
 
   // Only confirm trade if ALL agree
   if (
