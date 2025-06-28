@@ -513,10 +513,11 @@ async function closeHedgeTrade(price, manual = false) {
   try {
     const hedgeTrade = state.getHedgeTrade();
     if (!hedgeTrade) return;
+    
     await bybit.closeHedgeTrade(hedgeTrade.side);
     sendMessage(`❌ Hedge trade closed: ${hedgeTrade.side} ${config.orderSize} (${hedgeTrade.side === 'Buy' ? 'LONG' : 'SHORT'})`);
     sendMessage(`❌ Hedge trade closed at ${price}${manual ? ' (manual)' : ''}`);
-
+     lastClose = price;
     const wasKilled = hedgeTrade.killTriggered;
     state.clearHedgeTrade();
     lastBoundaryUpdateTime = Date.now();
