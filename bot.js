@@ -691,6 +691,7 @@ async function closeHedgeTrade(price, manual = false) {
 
     const wasKilled = hedgeTrade.killTriggered;
     lastHedgeClosePrice = price;
+    lastClose = price;
     state.clearHedgeTrade();
     lastBoundaryUpdateTime = Date.now();
     boundaryLocked = false;
