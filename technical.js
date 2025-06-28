@@ -57,9 +57,9 @@ function getMacdSignal(closes) {
 
 async function analyze() {
   const [closes1m, closes3m, closes5m] = await Promise.all([
-    fetchCloses('1m'),
     fetchCloses('3m'),
     fetchCloses('5m'),
+    fetchCloses('15m'),
   ]);
 
   const emaSignal1m = getEmaSignal(closes1m);
