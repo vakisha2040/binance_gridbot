@@ -2,7 +2,7 @@ const axios = require('axios');
 const config = require('./config.json');
 
 const SYMBOL = config.symbol;
-const INTERVAL = '5m';
+const INTERVAL = '1m';
 const LIMIT = 100;
 
 let currentPosition = null; // 'LONG', 'SHORT', or null
