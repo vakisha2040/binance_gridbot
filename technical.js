@@ -73,7 +73,7 @@ setInterval(async () => {
 
 module.exports = { analyze };
 
-
+/*
 usage
 
 const { analyze } = require('./tradingBot');
@@ -82,3 +82,4 @@ const { analyze } = require('./tradingBot');
   let signal = await analyze();
   console.log("Signal received:", signal);
 })();
+*/
