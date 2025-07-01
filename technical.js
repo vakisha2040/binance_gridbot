@@ -1,13 +1,4 @@
-//const axios = require('axios');
-//..const { EMA, MACD } = require('technicalindicators');
-//const config = require('./config.json');
-
-//..const SYMBOL = config.symbol;
-//const LIMIT = 100;
-
-
-
-// technical.js - Advanced Technical Analysis
+// technical.js - Advanced Technical Analysis with 2-out-of-3 Signal Confirmation
 const axios = require('axios');
 const { EMA, MACD } = require('technicalindicators');
 const config = require('./config.json');
@@ -18,7 +9,7 @@ const LIMIT = 100;
 async function fetchCloses(interval) {
   const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${SYMBOL.toUpperCase()}&interval=${interval}&limit=${LIMIT}`;
   const res = await axios.get(url);
-  return res.data.map(c => parseFloat(c[4])); // close prices only
+  return res.data.map(c => parseFloat(c[4])); // Close prices only
 }
 
 function getEmaSignal(closes, fastPeriod = 3, slowPeriod = 9) {
@@ -56,30 +47,25 @@ function getMacdSignal(closes) {
 }
 
 async function analyze() {
-  const [closes1m, closes3m, closes5m] = await Promise.all([
+  const [closes3m, closes5m, closes15m] = await Promise.all([
     fetchCloses('3m'),
     fetchCloses('5m'),
     fetchCloses('15m'),
   ]);
 
-  const emaSignal1m = getEmaSignal(closes1m);
   const emaSignal3m = getEmaSignal(closes3m);
-  const macdSignal5m = getMacdSignal(closes5m);
+  const emaSignal5m = getEmaSignal(closes5m);
+  const macdSignal15m = getMacdSignal(closes15m);
 
-  console.log(`📊 3m EMA: ${emaSignal1m}, 5m EMA: ${emaSignal3m}, 15m MACD: ${macdSignal5m}`);
+  console.log(`📊 3m EMA: ${emaSignal3m}, 5m EMA: ${emaSignal5m}, 15m MACD: ${macdSignal15m}`);
 
-  // Only confirm trade if ALL agree
-  if (
-    emaSignal1m === 'BULLISH' &&
-    emaSignal3m === 'BULLISH' &&
-    macdSignal5m === 'BULLISH'
-  ) return 'BUY';
+  const signals = [emaSignal3m, emaSignal5m, macdSignal15m];
 
-  if (
-    emaSignal1m === 'BEARISH' &&
-    emaSignal3m === 'BEARISH' &&
-    macdSignal5m === 'BEARISH'
-  ) return 'SELL';
+  const bullishCount = signals.filter(s => s === 'BULLISH').length;
+  const bearishCount = signals.filter(s => s === 'BEARISH').length;
+
+  if (bullishCount >= 2) return 'BUY';
+  if (bearishCount >= 2) return 'SELL';
 
   return 'WAIT';
 }
