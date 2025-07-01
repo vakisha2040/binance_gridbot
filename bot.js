@@ -78,7 +78,7 @@ const spacing = 0.3;
     `🎯 New Trade Zones Ready\n` +
     `┌───────────────┬───────────────┐\n` +
     `│    BUY ZONE   │   SELL ZONE   │\n` +
-    `│  ≤ ${boundaries.bottom} │  ≥ ${boundaries.top} │\n` +
+    `│  ≤ ${boundaries.top} │  ≥ ${boundaries.bottom} │\n` +
     `└───────────────┴───────────────┘\n` +
     `Current Price: ${price}`
   );
@@ -273,7 +273,7 @@ async function monitorPrice() {
               `▫️ Current: ${price}\n` +
               `🛡️ Attempting Sell hedge...`
             );
-            */
+            
 
             try {
               await openHedgeTrade('Sell', price);
