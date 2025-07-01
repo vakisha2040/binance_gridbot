@@ -163,7 +163,7 @@ async function startBot() {
       return;
     }
 
- // await initializeFreshBoundaries();
+  await initializeFreshBoundaries();
     
 /*
 const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
@@ -365,7 +365,7 @@ async function monitorPrice() {
 
       
       // 4. NEW TRADE PREPARATION ===========================================
-  
+/  
 if (!mainTrade && !hedgeTrade) {
   // 1. Handle cooldown first
   if (inCooldown) {
@@ -375,12 +375,25 @@ if (!mainTrade && !hedgeTrade) {
   } 
   // 2. Prepare new trading environment
   else {
+  /*
     if (!boundaries.top && !boundaries.bottom) {
       await initializeFreshBoundaries();
     } else {
    await  initializeFreshBoundaries();
   }
-}
+*/
+      // If no open main or hedge, check for boundary cross to open main trade
+    if (!state.getMainTrade() && !state.getHedgeTrade()) {
+      if (price >= boundaries.top) {
+        await openMainTrade('Buy', price);
+      } else if (price <= boundaries.bottom) {
+        await openMainTrade('Sell', price);
+      }
+      await delay(1000);
+      continue;
+    }
+  
+  }
 }
       
 
