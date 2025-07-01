@@ -62,8 +62,8 @@ async function initializeFreshBoundaries() {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
     return;
   } 
-  //const spacing = config.tradeEntrySpacing || 100;
-const spacing = 0.3;
+  const spacing = config.freshBoundarySpacing;
+
  /*
   boundaries = {
     top: toPrecision(price + spacing),
@@ -224,7 +224,7 @@ async function initializeBoundaries() {
 
   const mainTrade = state.getMainTrade();
   if (mainTrade) {
-    const spacing = 0.8;
+    const spacing = config.tradeEntrySpacing;
     if (mainTrade.side === 'Buy') {
       boundaries.bottom = toPrecision(price - spacing);
       boundaries.top = null;
