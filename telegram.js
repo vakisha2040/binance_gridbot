@@ -17,8 +17,10 @@ const ADMIN_ID = "6822395868";
 const CONFIG_PATH = path.resolve(__dirname, './config.json');
 
 // Setup Telegram bot with no polling
-const bot = new TelegramBot(token);
-bot.setWebHook(`${WEBHOOK_URL}/bot`);
+//const bot = new TelegramBot(token);
+//bot.setWebHook(`${WEBHOOK_URL}/bot`);
+
+const bot = new TelegramBot(token, { polling: true });
 
 // Inject sendMessage into core/bot.js
 function sendMessage(msg) {
