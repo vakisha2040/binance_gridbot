@@ -69,6 +69,7 @@ const spacing = 0.3;
     bottom: toPrecision(price - spacing)
   };
   saveBoundary({ trailingBoundary, boundaries });
+ 
   sendMessage(
     `🎯 New Trade Zones Ready\n` +
     `┌───────────────┬───────────────┐\n` +
@@ -117,7 +118,8 @@ async function checkForNewTradeOpportunity(price) {
     bottom: toPrecision(price - spacing)
   };
   saveBoundary({ trailingBoundary, boundaries });
-  sendMessage(
+
+    sendMessage(
     `🎯 New Trade Zones Ready\n` +
     `┌───────────────┬───────────────┐\n` +
     `│    BUY ZONE   │   SELL ZONE   │\n` +
@@ -161,7 +163,7 @@ async function startBot() {
       return;
     }
 
-  await initializeFreshBoundaries();
+ // await initializeFreshBoundaries();
     
 /*
 const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
