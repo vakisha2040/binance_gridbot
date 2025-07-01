@@ -14,10 +14,10 @@ app.use(bodyParser.json());
 
 
 // 🧠 Important: Handle Telegram webhook updates
-app.post(webhookPath, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
+//app.post(webhookPath, (req, res) => {
+ // bot.processUpdate(req.body);
+//  res.sendStatus(200);
+//});
 
 // Health check
 app.get('/', (req, res) => {
