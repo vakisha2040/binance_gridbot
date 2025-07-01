@@ -14,7 +14,7 @@
   "maxHedgeTrailDistance": 0.8, 
   "gridSpacing": 1.0,
   "zeroLevelSpacing":1.0,
-  "newBoundarySpacing": 1.0,
+  "newBoundarySpacing": 0.3,
   "gridLevels": 120,
   "gridStopLossPercent": 0.85,
   "cooldownTime": 5000,
