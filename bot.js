@@ -161,7 +161,9 @@ async function startBot() {
       return;
     }
 
-
+  await initializeFreshBoundaries();
+    
+/*
 const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
 
   if (signal === 'BUY') {
@@ -176,7 +178,7 @@ const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
   
    // const initialSide = config.initialTradeSide || 'Buy';
   //  await openMainTrade(initialSide, price);
-
+*/
   }
 
     
