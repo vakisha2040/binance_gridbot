@@ -47,7 +47,7 @@ let lastKillResetTime = 0;
 let hedgeOpeningInProgress = false;
 let boundaryLocked = false;
 
-//const { analyze } = require('./technical');
+const { analyze } = require('./technical');
 
 function getGridSpacing(level) {
   if (level === 0) return config.zeroLevelSpacing;
@@ -62,14 +62,15 @@ async function initializeFreshBoundaries() {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
     return;
   } 
+  /*
   const spacing = config.freshBoundarySpacing;
 
- /*
+ 
   boundaries = {
     top: toPrecision(price + spacing),
     bottom: toPrecision(price - spacing)
   };
-  */
+  
   boundaries.top = toPrecision(price + spacing);
   boundaries.bottom = toPrecision(price - spacing);
   saveBoundary({ trailingBoundary, boundaries });
@@ -83,8 +84,8 @@ async function initializeFreshBoundaries() {
     `Current Price: ${price}`
   );
   
-
-//await checkForNewTradeOpportunity(price); // Immediate check
+*/
+await checkForNewTradeOpportunity(price); // Immediate check
 }
 
 async function checkForNewTradeOpportunity(price) {
@@ -95,7 +96,7 @@ async function checkForNewTradeOpportunity(price) {
   const signal =  await analyze();
  
   if (signal === 'BUY') {
-    const spacing = config.tradeEntrySpacing;
+    const spacing = config.freshBoundarySpacing;
 
 
   boundaries = {
@@ -114,7 +115,7 @@ async function checkForNewTradeOpportunity(price) {
    await openMainTrade("Buy", price);
   } 
   else if (signal === 'SELL') {
-    const spacing = config.tradeEntrySpacing;
+    const spacing = config.freshBoundarySpacing;
 
 
   boundaries = {
@@ -167,9 +168,9 @@ async function startBot() {
       return;
     }
 
-  await initializeFreshBoundaries();
+  //await initializeFreshBoundaries();
     
-/*
+
 const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
 
   if (signal === 'BUY') {
@@ -187,7 +188,7 @@ const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
 
   }
 
-    */
+    
       }
 
   monitorPrice();
@@ -380,14 +381,15 @@ if (!mainTrade && !hedgeTrade) {
   } 
   // 2. Prepare new trading environment
   else {
-  /*
+  
     if (!boundaries.top && !boundaries.bottom) {
       await initializeFreshBoundaries();
     } else {
    await  initializeFreshBoundaries();
   }
-*/
+
       // If no open main or hedge, check for boundary cross to open main trade
+   /*
     if (!state.getMainTrade() && !state.getHedgeTrade()) {
       if (price >= boundaries.top) {
         await openMainTrade('Buy', price);
@@ -397,7 +399,7 @@ if (!mainTrade && !hedgeTrade) {
       await delay(1000);
       continue;
     }
-  
+  */
   }
 }
       
