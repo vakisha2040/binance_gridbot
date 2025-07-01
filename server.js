@@ -24,6 +24,8 @@ app.get('/', (req, res) => {
   res.send('🟢 Grid bot is alive and running!');
 });
 
+require('./telegram'); // ✅ This will start the Telegram bot
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🌐 Server listening on port ${PORT}`);
