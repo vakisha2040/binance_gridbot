@@ -70,8 +70,8 @@ const spacing = 0.3;
     bottom: toPrecision(price - spacing)
   };
   */
-  boundaries.top = toPrecision(price + config.newBoundarySpacing || spacing);
-  boundaries.bottom = toPrecision(price - config.newBoundarySpacing ||spacing);
+  boundaries.top = toPrecision(price + spacing);
+  boundaries.bottom = toPrecision(price - spacing);
   saveBoundary({ trailingBoundary, boundaries });
  
   sendMessage(
@@ -224,12 +224,13 @@ async function initializeBoundaries() {
 
   const mainTrade = state.getMainTrade();
   if (mainTrade) {
+    const spacing = 0.8;
     if (mainTrade.side === 'Buy') {
-      boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
+      boundaries.bottom = toPrecision(price - spacing);
       boundaries.top = null;
       sendMessage(`🔵 Buy main trade - bottom boundary set at ${boundaries.bottom} (current: ${price})`);
     } else {
-      boundaries.top = toPrecision(price + config.newBoundarySpacing);
+      boundaries.top = toPrecision(price + spacing);
       boundaries.bottom = null;
       sendMessage(`🔴 Sell main trade - top boundary set at ${boundaries.top} (current: ${price})`);
     }
