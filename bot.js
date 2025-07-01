@@ -47,7 +47,7 @@ let lastKillResetTime = 0;
 let hedgeOpeningInProgress = false;
 let boundaryLocked = false;
 
-const { analyze } = require('./technical');
+//const { analyze } = require('./technical');
 
 function getGridSpacing(level) {
   if (level === 0) return config.zeroLevelSpacing;
@@ -61,12 +61,9 @@ async function initializeFreshBoundaries() {
   if (!price) {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
     return;
-  }
-  
- /*
-  const spacing = config.tradeEntrySpacing || 100;
-
-
+  } 
+  //const spacing = config.tradeEntrySpacing || 100;
+const spacing = 0.3;
   boundaries = {
     top: toPrecision(price + spacing),
     bottom: toPrecision(price - spacing)
@@ -80,9 +77,9 @@ async function initializeFreshBoundaries() {
     `└───────────────┴───────────────┘\n` +
     `Current Price: ${price}`
   );
-  */
+  
 
-await checkForNewTradeOpportunity(price); // Immediate check
+//await checkForNewTradeOpportunity(price); // Immediate check
 }
 
 async function checkForNewTradeOpportunity(price) {
