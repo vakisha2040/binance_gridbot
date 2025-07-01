@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const cron = require('node-cron');
 const axios = require('axios');
 
-const { bot, webhookPath } = require('./telegram');
+//const { bot, webhookPath } = require('./telegram');
 const { startBot } = require('./bot');
 
 const app = express();
