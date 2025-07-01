@@ -32,6 +32,7 @@ setSendMessage(sendMessage);
 // ✅ Admin check utility
 function isAdmin(obj) {
   const id = obj?.id || obj?.from?.id || obj?.message?.from?.id;
+  console.log('Sender ID:', id);
   return id && id.toString() === ADMIN_ID;
 }
 
@@ -67,6 +68,7 @@ function getInlineKeyboard() {
 
 // ✅ Respond to /start or /menu
 bot.onText(/\/(start|menu)/, (msg) => {
+  console.log('⚡ /start received from:', msg.chat.id);
   if (!isAdmin(msg)) return;
   bot.sendMessage(msg.chat.id, '⚙️ Grid Bot Control Panel', getInlineKeyboard());
 });
