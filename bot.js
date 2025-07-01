@@ -64,10 +64,14 @@ async function initializeFreshBoundaries() {
   } 
   //const spacing = config.tradeEntrySpacing || 100;
 const spacing = 0.3;
+ /*
   boundaries = {
     top: toPrecision(price + spacing),
     bottom: toPrecision(price - spacing)
   };
+  */
+  boundaries.top = toPrecision(price + config.newBoundarySpacing || spacing);
+  boundaries.bottom = toPrecision(price - config.newBoundarySpacing ||spacing);
   saveBoundary({ trailingBoundary, boundaries });
  
   sendMessage(
