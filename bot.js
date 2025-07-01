@@ -5,7 +5,7 @@ const {
   toPrecision,
 } = require('./helper');
 
-require('./telegram'); // ✅ This will start the Telegram bot
+//require('./telegram'); // ✅ This will start the Telegram bot
 const {
   getCurrentPrice,
   waitForFirstPrice,
