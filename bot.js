@@ -369,7 +369,7 @@ async function monitorPrice() {
 
       
       // 4. NEW TRADE PREPARATION ===========================================
-/  
+ 
 if (!mainTrade && !hedgeTrade) {
   // 1. Handle cooldown first
   if (inCooldown) {
