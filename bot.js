@@ -547,7 +547,7 @@ async function closeMainTrade(price, manual = false) {
      setTimeout(async () => {
         if (!state.getHedgeTrade() && !state.getMainTrade()) {
           sendMessage(`🔄 Cooldown expired - setting up new boundary`);
-          await initializeNewHedgeBoundaries();
+          await initializeFreshBoundaries(); 
         }
       }, (config.hedgeCooldownPeriod ) + 2000);
     }
