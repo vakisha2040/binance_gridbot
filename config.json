@@ -24,7 +24,7 @@
 "hedgeBoundaryUpdateInterval": 10000,
   "hedgeKillCooldown": 2000,
   "hedgeKillSpacing": 20,
-  "hedgeBreakthroughPrice": 60,
+  "hedgeBreakthroughPrice": 110,
   "hedgeKillResetMultiplier": 1.11,
   "testnet": false,
   "closePositionsOnStop": true,
@@ -34,7 +34,7 @@
   "levelBasedSpacing": false,
   "debug": false,
   "boundaryUpdateInterval": 6000,
-  "boundaryTolerance": 20,
+  "boundaryTolerance": 30,
   "trailingThreshold": 200,
     "oneWayTrailing": true,
   "emergencyThresholdMultiplier": 0.2
