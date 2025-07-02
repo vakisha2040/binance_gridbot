@@ -64,8 +64,8 @@ async function initializeFreshBoundaries() {
     return;
   } 
   
-  //const spacing = config.freshBoundarySpacing;
-const spacing = 0.2;
+  const spacing = config.freshBoundarySpacing;
+
  
   boundaries = {
     top: toPrecision(price + spacing),
