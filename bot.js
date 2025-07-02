@@ -13,6 +13,7 @@ const {
   stopPolling
 } = require('./priceFeed');
 
+let hedgeToMain = null;
 let extremeBoundary = null; // Tracks most aggressive boundary level
 let lastBoundaryUpdateTime = 0;
 const BOUNDARY_UPDATE_COOLDOWN = 5000; // 3 seconds minimum between updates
@@ -333,7 +334,7 @@ async function monitorPrice() {
         await handleMainTrade(price);
 
         // Check kill switch only if not in manual mode
-        if (!mainTrade.manual) {
+        if (!mainTrade.manual && !hedgeToMain) {
           await killMain();
         }
 
@@ -450,6 +451,7 @@ async function openMainTrade(side, entryPrice) {
       armedNotificationSent: false,
       breakthroughPrice: null,
     });
+    hedgeToMain = false;
     lastBoundaryUpdateTime = 0;
     let extremeBoundary = null; // Tracks the most aggressive boundary level
     boundaryLocked = true;
@@ -596,6 +598,7 @@ function promoteHedgeToMain() {
   lastHedgeClosePrice = hedge.entry;
   hedgeCooldownUntil = 0;
   boundaryLocked = false;
+  hedgeToMain = true;
   lastClose = price;
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
   initializeHedgePromotionBoundary();
