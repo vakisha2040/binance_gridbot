@@ -13,7 +13,7 @@ const {
   stopPolling
 } = require('./priceFeed');
 
-let hedgeToMain = null;
+let hedgeToMain = false;
 let extremeBoundary = null; // Tracks most aggressive boundary level
 let lastBoundaryUpdateTime = 0;
 const BOUNDARY_UPDATE_COOLDOWN = 5000; // 3 seconds minimum between updates
@@ -539,7 +539,7 @@ async function closeMainTrade(price, manual = false) {
       boundaries.top = null;
       boundaries.bottom = null;
       saveBoundary({ trailingBoundary, boundaries });
-
+      hedgeToMain = false
        
     if (state.getHedgeTrade()) {
       promoteHedgeToMain();
