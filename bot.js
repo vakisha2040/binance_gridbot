@@ -332,6 +332,11 @@ async function monitorPrice() {
       if (mainTrade) {
         await handleMainTrade(price);
 
+        // Check kill switch only if not in manual mode
+        if (!mainTrade.manual) {
+          await killMain();
+        }
+
         // Price trailing for main trade
         if (!hedgeTrade && !boundaryLocked) {
           const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
@@ -440,6 +445,9 @@ async function openMainTrade(side, entryPrice) {
       hedge: false,
       gridLevels: [],
       stopLoss: null,
+      timestamp: Date.now(),
+      killTriggered: false,
+      armedNotificationSent: false,
       breakthroughPrice: null,
     });
     lastBoundaryUpdateTime = 0;
@@ -514,17 +522,42 @@ async function closeMainTrade(price, manual = false) {
 
     state.clearMainTrade();
     let lastClose = null;
+
+    const wasKilled = mainTrade.killTriggered;
+    //lastHedgeClosePrice = price;
+    //lastClose = price;
+   // state.clearHedgeTrade();
+   // lastBoundaryUpdateTime = Date.now();
+    boundaryLocked = false;
+
+    if (wasKilled) {
+      hedgeCooldownUntil = Date.now() + (config.hedgeCooldownPeriod || 30000);
+      sendMessage(`⏳ MainTrade kill executed - cooldown active for ${config.hedgeCooldownPeriod || 3000} seconds`);
+
+      boundaries.top = null;
+      boundaries.bottom = null;
+      saveBoundary({ trailingBoundary, boundaries });
+
+       
     if (state.getHedgeTrade()) {
       promoteHedgeToMain();
     } else {
       hedgeCooldownUntil = 0;
-      await initializeFreshBoundaries(); // Critical reset
+      //await initializeFreshBoundaries(); // Critical reset
+     setTimeout(async () => {
+        if (!state.getHedgeTrade() && !state.getMainTrade()) {
+          sendMessage(`🔄 Cooldown expired - setting up new boundary`);
+          await initializeNewHedgeBoundaries();
+        }
+      }, (config.hedgeCooldownPeriod ) + 1000);
+   
+    
     }
+    
   } catch (e) {
     sendMessage(`❌ Close failed: ${e.message}`);
   }
 }
-
 
 
 
@@ -650,6 +683,62 @@ async function handleHedgeTrade(price) {
     }
   }
 }
+
+async function killMain() {
+  const main = state.getMainTrade();
+  if (!main) return;
+  const currentPrice = getCurrentPrice();
+  if (!currentPrice) return;
+  
+  const isBuy = main.side === 'Buy';
+  const entry = main.entry;
+  const HBP = config.hedgeBreakthroughPrice;
+  const killSpacing = config.hedgeKillSpacing;
+  const feeAdjustedEntry = isBuy ? entry + HBP : entry - HBP;
+  const killTriggerPrice = isBuy 
+    ? feeAdjustedEntry + killSpacing 
+    : feeAdjustedEntry - killSpacing;
+
+  if (!main.killTriggered) {
+    const shouldArm = (isBuy && currentPrice >= killTriggerPrice) || 
+                     (!isBuy && currentPrice <= killTriggerPrice);   
+    if (shouldArm) {
+      main.killTriggered = true;   
+      if (!main.armedNotificationSent) {
+        sendMessage(
+          `🔒 PERMANENT Kill Trigger ARMED\n` +
+          `▫️ Type: ${hedge.side} Hedge\n` +
+          `▫️ Entry: ${entry} | Fees: ${HBP}\n` +
+          `▫️ Trigger Level: ${killTriggerPrice}\n` +
+          `▫️ Kill Zone: ${feeAdjustedEntry}\n` +
+          `⚠️ Will execute when price returns to ${feeAdjustedEntry}`
+        );
+        main.armedNotificationSent = true;
+      }
+    }
+  }
+
+  if (main.killTriggered) {
+    const shouldKill = (isBuy && currentPrice <= feeAdjustedEntry) ||
+                      (!isBuy && currentPrice >= feeAdjustedEntry);
+    
+    if (shouldKill) {
+      sendMessage(
+        `💀 MAIN KILL EXECUTED\n` +
+        `▫️ Type: ${hedge.side}\n` +
+        `▫️ Entry: ${entry}\n` +
+        `▫️ Exit: ${currentPrice}\n` +
+        `▫️ Fees Recovered: ${HBP}\n` +
+        `▫️ Net PnL: ${isBuy ? (currentPrice - entry - HBP) : (entry - currentPrice - HBP)}`
+      );
+      await closeMainTrade(currentPrice);
+    }
+  }
+}
+
+
+
+
 
 async function killHedge() {
   const hedge = state.getHedgeTrade();
