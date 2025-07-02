@@ -710,7 +710,7 @@ async function killMain() {
       if (!main.armedNotificationSent) {
         sendMessage(
           `🔒 PERMANENT Kill Trigger ARMED\n` +
-          `▫️ Type: ${main.side} Hedge\n` +
+          `▫️ Type: ${main.side} Main\n` +
           `▫️ Entry: ${entry} | Fees: ${HBP}\n` +
           `▫️ Trigger Level: ${killTriggerPrice}\n` +
           `▫️ Kill Zone: ${feeAdjustedEntry}\n` +
