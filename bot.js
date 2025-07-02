@@ -549,10 +549,10 @@ async function closeMainTrade(price, manual = false) {
           sendMessage(`🔄 Cooldown expired - setting up new boundary`);
           await initializeNewHedgeBoundaries();
         }
-      }, (config.hedgeCooldownPeriod ) + 1000);
-   
-    
+      }, (config.hedgeCooldownPeriod ) + 2000);
     }
+    }
+    
     
   } catch (e) {
     sendMessage(`❌ Close failed: ${e.message}`);
