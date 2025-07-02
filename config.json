@@ -9,7 +9,7 @@
   "initialTradeSide": "Buy",
   "startPrice": null,
   "tradeEntrySpacing": 250,
-  "freshBoundarySpacing": 100,
+  "freshBoundarySpacing": 150,
   "trailingBoundary": 200,
   "boundaryStickyness": 200,
   "maxHedgeTrailDistance": 200, 
