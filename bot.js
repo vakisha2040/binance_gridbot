@@ -544,7 +544,7 @@ async function closeMainTrade(price, manual = false) {
     if (state.getHedgeTrade()) {
       promoteHedgeToMain();
     } else {
-      hedgeCooldownUntil = 0;
+      //hedgeCooldownUntil = 0;
       //await initializeFreshBoundaries(); // Critical reset
      setTimeout(async () => {
         if (!state.getHedgeTrade() && !state.getMainTrade()) {
