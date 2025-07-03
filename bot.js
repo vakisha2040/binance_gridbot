@@ -333,10 +333,24 @@ async function monitorPrice() {
       if (mainTrade) {
         await handleMainTrade(price);
         //create new boundary if price fail
-        if(!boundaries.top || !boundaries.bottom){
-          await initializeBoundaries();
+        if(!boundaries.bottom ){
+          if (mainTrade.side === 'Buy') {
+      boundaries.bottom = toPrecision(price - spacing);
+      boundaries.top = null;
+      sendMessage(`🔵 Buy main trade - bottom boundary set at ${boundaries.bottom} (current: ${price})`);
+    } 
+       }
+
+    if(!boundaries.top ){
+          if (mainTrade.side === 'Sell') {
+      boundaries.top = toPrecision(price + spacing);
+      boundaries.bottom = null;
+      sendMessage(`🔴 Sell main trade - top boundary set at ${boundaries.top} (current: ${price})`);
+ 
+         } 
         }
-        // Check kill switch only if not in manual mode
+        
+          // Check kill switch only if not in manual mode
         if (!mainTrade.manual && !hedgeToMain) {
           await killMain();
         }
