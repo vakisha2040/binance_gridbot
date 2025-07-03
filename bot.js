@@ -332,7 +332,10 @@ async function monitorPrice() {
       // 2. MAIN TRADE HANDLING ================================================
       if (mainTrade) {
         await handleMainTrade(price);
-
+        //create new boundary if price fail
+        if(!boundaries.top || !boundaries.bottom){
+          await initializeNewHedgeBoundaries();
+        }
         // Check kill switch only if not in manual mode
         if (!mainTrade.manual && !hedgeToMain) {
           await killMain();
