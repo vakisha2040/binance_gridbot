@@ -1,7 +1,7 @@
 const axios = require('axios');
 const config = require('./config.json');
 
-const SYMBOL = config.symbol;
+const SYMBOL = config.symbol || "SOLUSDT";
 const INTERVAL = '1m';
 const LIMIT = 100;
 
@@ -19,47 +19,36 @@ async function fetchCandles(symbol = SYMBOL) {
     time: new Date(c[0]).toLocaleTimeString()
   }));
 }
+ function getIntradaySignal(candles) {
+  if (candles.length < 11) return 'WAIT';
 
-function getIntradaySignal(candles) {
-  if (candles.length < 21) return 'WAIT';
-
-  const recent20 = candles.slice(-21, -1); // previous 20 candles
+  const recent10 = candles.slice(-11, -1); // Previous 10 candles
   const last = candles[candles.length - 1];
 
-  const high20 = Math.max(...recent20.map(c => c.high));
-  const low20 = Math.min(...recent20.map(c => c.low));
-  const high10 = Math.max(...recent20.slice(-10).map(c => c.high));
-  const low10 = Math.min(...recent20.slice(-10).map(c => c.low));
+  const high10 = Math.max(...recent10.map(c => c.high));
+  const low10 = Math.min(...recent10.map(c => c.low));
 
-  if (!currentPosition) {
-    if (last.close > high20) {
-      currentPosition = 'LONG';
-      console.log(`📈 BUY at ${last.close} on ${last.time}`);
-      return 'BUY';
-    }
-    if (last.close < low20) {
-      currentPosition = 'SHORT';
-      console.log(`📉 SELL at ${last.close} on ${last.time}`);
-      return 'SELL';
-    }
-  } else if (currentPosition === 'LONG' && last.close < low10) {
-    console.log(`🔓 CLOSE LONG at ${last.close} on ${last.time}`);
-    currentPosition = null;
-    return 'CLOSE_LONG';
-  } else if (currentPosition === 'SHORT' && last.close > high10) {
-    console.log(`🔓 CLOSE SHORT at ${last.close} on ${last.time}`);
-    currentPosition = null;
-    return 'CLOSE_SHORT';
+  // Debug
+  console.log(`Last: ${last.close}, H10: ${high10}, L10: ${low10}`);
+
+  if (last.close >= high10) {
+    console.log(`📈 BUY at ${last.close} on ${last.time}`);
+    return 'BUY';
+  }
+
+  if (last.close <= low10) {
+    console.log(`📉 SELL at ${last.close} on ${last.time}`);
+    return 'SELL';
   }
 
   return 'WAIT';
 }
-
 async function analyze() {
   const candles = await fetchCandles();
   const signal = getIntradaySignal(candles);
-  console.log(`📊 Signal: ${signal}, Position: ${currentPosition}`);
-    return signal;
+  console.log(`[${new Date().toLocaleString()}] 📊 Signal: ${signal}`);
+  
+  return signal;
 }
 
 // Run every 5 minutes
@@ -69,7 +58,7 @@ setInterval(async () => {
   } catch (err) {
     console.error('❌ Error:', err.message);
   }
-}, 300_000); // Poll every 5 minutes
+}, 5000); // Poll every 5 minutes
 
 module.exports = { analyze };
 
