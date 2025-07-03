@@ -339,7 +339,8 @@ async function monitorPrice() {
       boundaries.bottom = toPrecision(price - spacing);
       boundaries.top = null;
       sendMessage(`🔵 Buy main trade - bottom boundary set at ${boundaries.bottom} (current: ${price})`);
-    } 
+    saveBoundary({ trailingBoundary, boundaries });
+          } 
        }
 
     if(!boundaries.top ){
@@ -347,7 +348,7 @@ async function monitorPrice() {
       boundaries.top = toPrecision(price + spacing);
       boundaries.bottom = null;
       sendMessage(`🔴 Sell main trade - top boundary set at ${boundaries.top} (current: ${price})`);
- 
+     saveBoundary({ trailingBoundary, boundaries });
          } 
         }
         
