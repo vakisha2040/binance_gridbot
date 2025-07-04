@@ -12,6 +12,7 @@ const {
   manualBuyMainTrade,
   manualSellMainTrade,
   manualCloseHedgeTrade,
+  initializeBoundaries,
   resetBot,
 } = require('./bot');
 const state = require('./state');
@@ -60,6 +61,9 @@ function getInlineKeyboard() {
         [
           { text: '🟢 🔼 Buy', callback_data: 'buy_main_trade' },
           { text: '🔴 🔻 Sell', callback_data: 'sell_main_trade' }
+        ],
+        [
+          { text: '🔼 Set Boundary', callback_data: 'set_boundary' }
         ]
       ]
     }
@@ -98,7 +102,12 @@ bot.on('callback_query', async (query) => {
       respond('🛑 Stopping bot...');
       stopBot();
       break;
-
+      
+      case 'set_boundary':
+      respond('✅ Setting new trade boundary...');
+      await initializeBoundaries();
+      break;
+      
     case 'stop_main_trade':
       respond('🛑 Closing main trade...');
       await manualCloseMainTrade();
