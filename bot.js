@@ -203,7 +203,7 @@ async function initializeBoundaries() {
       boundaries.bottom = toPrecision(price - spacing);
       boundaries.top = null;
       sendMessage(`🔵 Buy main trade - bottom boundary set at ${boundaries.bottom} (current: ${price})`);
-    } else {
+    } else if (mainTrade.side === 'Sell') {
       boundaries.top = toPrecision(price + spacing);
       boundaries.bottom = null;
       sendMessage(`🔴 Sell main trade - top boundary set at ${boundaries.top} (current: ${price})`);
@@ -248,7 +248,7 @@ async function monitorPrice() {
               `▫️ Current: ${price}\n` +
               `🛡️ Attempting Sell hedge...`
             );
-            
+            */
 
             try {
               await openHedgeTrade('Sell', price);
@@ -411,7 +411,7 @@ async function openMainTrade(side, entryPrice) {
   try {
     await bybit.openMainTrade(side, config.orderSize);
     state.setMainTrade({
-      side:side,
+      side,
       entry: entryPrice,
       level: 0,
       hedge: false,
@@ -426,10 +426,10 @@ async function openMainTrade(side, entryPrice) {
     lastBoundaryUpdateTime = 0;
     let extremeBoundary = null; // Tracks the most aggressive boundary level
     boundaryLocked = true;
-    const mainTrade = state.getMainTrade();
+    //const mainTrade = state.getMainTrade();
       
     sendMessage(`📈 Main trade opened: ${side} at ${entryPrice}`);
-   sendMessage(`Main trade data: ${mainTrade}`);
+  // sendMessage(`Main trade data: ${mainTrade}`);
     
     await initializeBoundaries();
   } catch (e) {
@@ -622,10 +622,10 @@ async function openHedgeTrade(side, entryPrice) {
       killTriggered: false,
       armedNotificationSent: false,
     });
-   const hedgeTrade = state.getHedgeTrade();
+  // const hedgeTrade = state.getHedgeTrade();
   
     sendMessage(`🛡️ Hedge trade opened: ${side} at ${entryPrice} (Breakthrough: ${breakthroughPrice})`);
- sendMessage(`🛡️ Hedge trade data: ${hedgeTrade}`);
+// sendMessage(`🛡️ Hedge trade data: ${hedgeTrade}`);
  
   } catch (e) {
     sendMessage(`❌ Failed to open hedge trade: ${e.message}`);
