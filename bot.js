@@ -1284,5 +1284,6 @@ module.exports = {
   manualBuyMainTrade,
   manualSellMainTrade,
   promoteHedgeToMain,
+  initializeBoundaries,
   resetBot,
 };
