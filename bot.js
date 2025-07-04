@@ -63,29 +63,9 @@ async function initializeFreshBoundaries() {
     sendMessage('⚠️ Price unavailable - boundary reset delayed');
     return;
   } 
-  /*
+  
   const spacing = config.freshBoundarySpacing;
 
- 
-  boundaries = {
-    top: toPrecision(price + spacing),
-    bottom: toPrecision(price - spacing)
-  };
-  
-  boundaries.top = toPrecision(price + spacing);
-  boundaries.bottom = toPrecision(price - spacing);
-  saveBoundary({ trailingBoundary, boundaries });
- 
-  sendMessage(
-    `🎯 New Trade Zones Ready\n` +
-    `┌───────────────┬───────────────┐\n` +
-    `│    BUY ZONE   │   SELL ZONE   │\n` +
-    `│  ≤ ${boundaries.top} │  ≥ ${boundaries.bottom} │\n` +
-    `└───────────────┴───────────────┘\n` +
-    `Current Price: ${price}`
-  );
-  
-*/
 await checkForNewTradeOpportunity(price); // Immediate check
 }
 
@@ -178,18 +158,10 @@ const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
   //  openMainTrade("Buy", price);
     sendMessage(` 🕐 Signal is BUY, Placing Buy order...`);
   } 
-  else if (signal === 'SELL') {
+  else (signal === 'SELL') {
   //  openMainTrade("Sell", price);
     sendMessage(` 🕐 Signal is SELL, Placing sell order...`);
-  } 
-  else {
-  
-   // const initialSide = config.initialTradeSide || 'Buy';
-  //  await openMainTrade(initialSide, price);
-
-  }
-
-    
+  }  
       }
 
   monitorPrice();
@@ -332,27 +304,6 @@ async function monitorPrice() {
       // 2. MAIN TRADE HANDLING ================================================
       if (mainTrade) {
         await handleMainTrade(price);
-        //create new boundary if price fail
-   /*
-        const spacing = config.freshBoundarySpacing;
-        if(!boundaries.bottom ){
-          if (mainTrade.side === 'Buy') {
-      boundaries.bottom = toPrecision(price - spacing);
-      boundaries.top = null;
-      sendMessage(`🔵 Buy main trade - bottom boundary set at ${boundaries.bottom} (current: ${price})`);
-    saveBoundary({ trailingBoundary, boundaries });
-          } 
-       }
-
-    if(!boundaries.top ){
-          if (mainTrade.side === 'Sell') {
-      boundaries.top = toPrecision(price + spacing);
-      boundaries.bottom = null;
-      sendMessage(`🔴 Sell main trade - top boundary set at ${boundaries.top} (current: ${price})`);
-     saveBoundary({ trailingBoundary, boundaries });
-         } 
-        }
-        */
           // Check kill switch only if not in manual mode
         if (!mainTrade.manual && !hedgeToMain) {
           await killMain();
@@ -460,7 +411,7 @@ async function openMainTrade(side, entryPrice) {
   try {
     await bybit.openMainTrade(side, config.orderSize);
     state.setMainTrade({
-      side,
+      side:side,
       entry: entryPrice,
       level: 0,
       hedge: false,
@@ -475,7 +426,11 @@ async function openMainTrade(side, entryPrice) {
     lastBoundaryUpdateTime = 0;
     let extremeBoundary = null; // Tracks the most aggressive boundary level
     boundaryLocked = true;
+    const mainTrade = state.getMainTrade();
+      
     sendMessage(`📈 Main trade opened: ${side} at ${entryPrice}`);
+   sendMessage(`Main trade data: ${mainTrade}`);
+    
     await initializeBoundaries();
   } catch (e) {
     sendMessage(`❌ Failed to open main trade: ${e.message}`);
@@ -614,7 +569,6 @@ function promoteHedgeToMain() {
   hedge.killZoneTouched = false;
   hedge.openTimestamp = null;
   state.setMainTrade(hedge);
-  state.clearHedgeTrade();
   lastHedgeClosePrice = hedge.entry;
   hedgeCooldownUntil = 0;
   boundaryLocked = false;
@@ -622,6 +576,7 @@ function promoteHedgeToMain() {
   lastClose = price;
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
   initializeHedgePromotionBoundary();
+  state.clearHedgeTrade();
 } 
 
 async function openHedgeTrade(side, entryPrice) {
@@ -656,7 +611,7 @@ async function openHedgeTrade(side, entryPrice) {
     
     await bybit.openHedgeTrade(side, config.orderSize);
     state.setHedgeTrade({
-      side,
+      side:side,
       entry: entryPrice,
       level: 0,
       hedge: true,
@@ -667,8 +622,11 @@ async function openHedgeTrade(side, entryPrice) {
       killTriggered: false,
       armedNotificationSent: false,
     });
-
+   const hedgeTrade = state.getHedgeTrade();
+  
     sendMessage(`🛡️ Hedge trade opened: ${side} at ${entryPrice} (Breakthrough: ${breakthroughPrice})`);
+ sendMessage(`🛡️ Hedge trade data: ${hedgeTrade}`);
+ 
   } catch (e) {
     sendMessage(`❌ Failed to open hedge trade: ${e.message}`);
   }
