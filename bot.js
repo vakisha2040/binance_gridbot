@@ -333,7 +333,8 @@ async function monitorPrice() {
       if (mainTrade) {
         await handleMainTrade(price);
         //create new boundary if price fail
-       const spacing = config.freshBoundarySpacing;
+   /*
+        const spacing = config.freshBoundarySpacing;
         if(!boundaries.bottom ){
           if (mainTrade.side === 'Buy') {
       boundaries.bottom = toPrecision(price - spacing);
@@ -351,7 +352,7 @@ async function monitorPrice() {
      saveBoundary({ trailingBoundary, boundaries });
          } 
         }
-        
+        */
           // Check kill switch only if not in manual mode
         if (!mainTrade.manual && !hedgeToMain) {
           await killMain();
