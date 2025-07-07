@@ -220,7 +220,36 @@ async function initializeBoundaries() {
   saveBoundary({ trailingBoundary, boundaries });
 }
 
+async function initializeEmergencyBoundaries() {
+  const price = getCurrentPrice();
+  if (!price) {
+    sendMessage('⚠️ Unable to get current price to set boundaries.');
+    return;
+  }
 
+  const mainTrade = state.getMainTrade();
+  if (mainTrade) {
+    const spacing = config.emergencySpacing;
+    if (mainTrade.side === 'Buy') {
+      boundaries.bottom = toPrecision(price - spacing);
+      boundaries.top = null;
+      sendMessage(`🔵 Buy main trade - bottom boundary set at ${boundaries.bottom} (current: ${price})`);
+    } else if (mainTrade.side === 'Sell') {
+      boundaries.top = toPrecision(price + spacing);
+      boundaries.bottom = null;
+      sendMessage(`🔴 Sell main trade - top boundary set at ${boundaries.top} (current: ${price})`);
+    }
+  } else {
+    boundaries.top = toPrecision(price + config.tradeEntrySpacing);
+    boundaries.bottom = toPrecision(price - config.tradeEntrySpacing);
+    sendMessage(`⚪ No main trade - boundaries set at ${boundaries.bottom}-${boundaries.top} (current: ${price})`);
+  }
+
+  saveBoundary({ trailingBoundary, boundaries });
+}
+
+
+                                 
 async function monitorPrice() {
   while (state.isRunning()) {
     try {
@@ -1245,6 +1274,6 @@ module.exports = {
   manualBuyMainTrade,
   manualSellMainTrade,
   promoteHedgeToMain,
-  initializeBoundaries,
+  initializeEmergencyBoundaries,
   resetBot,
 };
