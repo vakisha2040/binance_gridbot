@@ -13,7 +13,7 @@ const {
   manualSellMainTrade,
   manualCloseHedgeTrade,
   openHedgeTrade,
-  initializeBoundaries,
+  initializeEmergencyBoundaries,
   resetBot,
 } = require('./bot');
 const state = require('./state');
@@ -107,7 +107,7 @@ bot.on('callback_query', async (query) => {
       
       case 'set_boundary':
       respond('✅ Setting new trade boundary...');
-      await initializeBoundaries();
+      await initializeEmergencyBoundaries();
       break;
       
     case 'stop_main_trade':
