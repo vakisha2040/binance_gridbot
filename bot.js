@@ -1239,27 +1239,34 @@ async function manualSellMainTrade() {
 
 async function manualBuyMainTrade() {
   if (state.isRunning()) return;
-  fetchPrecision(config);
-  startPolling(1000);
-  await waitForFirstPrice();
-  state.startBot();
-  sendMessage('🤖 Bot started');
 
-  let price;
-  while (true) {
-    price = getCurrentPrice();
-    if (typeof price === 'number' && !isNaN(price)) break;
-    sendMessage('⏳ Waiting for valid price to place Buy trade...');
-    await delay(1000);
-  }
+  try {
+    await fetchPrecision(config);
+    startPolling(1000);
+    await waitForFirstPrice();
 
-  if (!state.getMainTrade() && !state.getHedgeTrade()) {
-    await openMainTrade('Buy', price);
-    await monitorPrice();
-  } else {
-    sendMessage('⚠️ Trade not placed: Main or Hedge already active.');
+    state.startBot();
+    sendMessage('🤖 Bot started');
+
+    let price;
+    while (true) {
+      price = await getCurrentPrice(); // await here!
+      if (typeof price === 'number' && !isNaN(price)) break;
+      sendMessage('⏳ Waiting for valid price to place Buy trade...');
+      await delay(1000);
+    }
+
+    if (!state.getMainTrade() && !state.getHedgeTrade()) {
+      await openMainTrade('Buy', price);
+      await monitorPrice();
+    } else {
+      sendMessage('⚠️ Trade not placed: Main or Hedge already active.');
+    }
+  } catch (err) {
+    sendMessage(`❌ Error in manualBuyMainTrade: ${err.message}`);
   }
 }
+
 
 async function openNewHedgeTrade() {
   const price = getCurrentPrice();
