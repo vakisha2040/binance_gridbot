@@ -65,7 +65,7 @@ function getInlineKeyboard() {
         ],
         [
           { text: '🔼 Set Boundary', callback_data: 'set_boundary' },
-          { text: '🔄 Open Hedge', callback_data: 'open_main_hedge' }
+          { text: '🔄 Open Hedge', callback_data: 'open_hedge_trade' }
         ]
       ]
     }
