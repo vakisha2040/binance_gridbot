@@ -1262,6 +1262,13 @@ async function manualBuyMainTrade() {
 }
 
 async function openNewHedgeTrade() {
+  let price;
+  while (true) {
+    price = getCurrentPrice();
+    if (typeof price === 'number' && !isNaN(price)) break;
+    sendMessage('⏳ Waiting for valid price to place trade...');
+    await delay(1000);
+  }
   const mainTrade = state.getMainTrade();
   const hedgeTrade = state.getHedgeTrade();
   const inCooldown = Date.now() < hedgeCooldownUntil;
