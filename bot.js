@@ -643,7 +643,7 @@ async function openHedgeTrade(side, entryPrice) {
     
     await bybit.openHedgeTrade(side, config.orderSize);
     state.setHedgeTrade({
-      side:side,
+      side,
       entry: entryPrice,
       level: 0,
       hedge: true,
