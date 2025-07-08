@@ -1262,13 +1262,11 @@ async function manualBuyMainTrade() {
 }
 
 async function openNewHedgeTrade() {
-  let price;
-  while (true) {
-    price = getCurrentPrice();
-    if (typeof price === 'number' && !isNaN(price)) break;
-    sendMessage('⏳ Waiting for valid price to place trade...');
-    await delay(1000);
-  }
+  const price = getCurrentPrice();
+    if (!price) {
+      sendMessage("⚠️ Unable to fetch price for main trade on startup.");
+      return;
+    }
   const mainTrade = state.getMainTrade();
   const hedgeTrade = state.getHedgeTrade();
   const inCooldown = Date.now() < hedgeCooldownUntil;
