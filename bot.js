@@ -1261,12 +1261,73 @@ async function manualBuyMainTrade() {
   }
 }
 
+async function openNewHedgeTrade() {
+const mainTrade = state.getMainTrade();
+      const hedgeTrade = state.getHedgeTrade();
+      const inCooldown = Date.now() < hedgeCooldownUntil;
+      const now = Date.now();
+
+      // 1. HEDGE TRADE OPENING LOGIC ===========================================
+      if (!hedgeTrade && !hedgeOpeningInProgress && !inCooldown) {
+        // For Buy main trades (need Sell hedge)
+        if (mainTrade?.side === 'Buy' && boundaries.bottom) {
+          const effectiveBoundary = boundaries.bottom + (config.boundaryTolerance);
+          
+          if (price <= effectiveBoundary) {
+            hedgeOpeningInProgress = true;
+  
+
+            try {
+              await openHedgeTrade('Sell', price);
+              //sendMessage(`✅ Sell hedge opened at ${price}`);
+            } catch (e) {
+              sendMessage(`❌ FAILED to open Sell hedge: ${e.message}`);
+              // Schedule retry if still below boundary
+              if (price <= effectiveBoundary) {
+                const retryDelay = config.hedgeOpenRetryDelay || 5000;
+                sendMessage(`⏳ Will retry hedge open in ${retryDelay/1000} sec...`);
+                await delay(retryDelay);
+                continue; // Jump to next iteration for retry
+              }
+            } finally {
+              hedgeOpeningInProgress = false;
+            }
+          }
+        }
+        // For Sell main trades (need Buy hedge)
+        else if (mainTrade?.side === 'Sell' && boundaries.top) {
+          const effectiveBoundary = boundaries.top - (config.boundaryTolerance);
+          
+          if (price >= effectiveBoundary) {
+            hedgeOpeningInProgress = true;
+
+            try {
+              await openHedgeTrade('Buy', price);
+              //sendMessage(`✅ Buy hedge opened at ${price}`);
+            } catch (e) {
+              sendMessage(`❌ FAILED to open Buy hedge: ${e.message}`);
+              if (price >= effectiveBoundary) {
+                const retryDelay = config.hedgeOpenRetryDelay || 5000;
+                sendMessage(`⏳ Will retry hedge open in ${retryDelay/1000} sec...`);
+                await delay(retryDelay);
+                continue;
+              }
+            } finally {
+              hedgeOpeningInProgress = false;
+            }
+          }
+        }
+      }
+}
+
+
+
 module.exports = {
   startBot,
   stopBot,
   setSendMessage,
   openMainTrade,
-  openHedgeTrade,
+  openNewHedgeTrade,
   closeMainTrade,
   closeHedgeTrade,
   manualCloseMainTrade,
