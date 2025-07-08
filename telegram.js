@@ -12,7 +12,7 @@ const {
   manualBuyMainTrade,
   manualSellMainTrade,
   manualCloseHedgeTrade,
-  openHedgeTrade,
+  openNewHedgeTrade,
   initializeEmergencyBoundaries,
   resetBot,
 } = require('./bot');
@@ -123,7 +123,7 @@ bot.on('callback_query', async (query) => {
 
       case 'open_hedge_trade':
       respond('🔄 Opening hedge trade...');
-      await openHedgeTrade();
+      await openNewHedgeTrade();
       break;
 
 
