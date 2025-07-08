@@ -1213,29 +1213,40 @@ async function manualCloseHedgeTrade() {
   await closeHedgeTrade(price, true);
 }
 
+
 async function manualSellMainTrade() {
   if (state.isRunning()) return;
-  fetchPrecision(config);
-  startPolling(1000);
-  await waitForFirstPrice();
-  state.startBot();
-  sendMessage('🤖 Bot started');
 
-  let price;
-  while (true) {
-    price = getCurrentPrice();
-    if (typeof price === 'number' && !isNaN(price)) break;
-    sendMessage('⏳ Waiting for valid price to place Sell trade...');
-    await delay(1000);
-  }
+  try {
+    await fetchPrecision(config); // ✅ Await this
+    startPolling(1000);
+    await waitForFirstPrice();    // ✅ Wait for first price
 
-  if (!state.getMainTrade() && !state.getHedgeTrade()) {
-    await openMainTrade('Sell', price);
-    await monitorPrice();
-  } else {
-    sendMessage('⚠️ Trade not placed: Main or Hedge already active.');
+    state.startBot();
+    sendMessage('🤖 Bot started');
+
+    let price;
+
+    while (true) {
+      price = await getCurrentPrice(); // ✅ Await this
+      if (typeof price === 'number' && !isNaN(price)) break;
+
+      sendMessage('⏳ Waiting for valid price to place Sell trade...');
+      await delay(1000);
+    }
+
+    if (!state.getMainTrade() && !state.getHedgeTrade()) {
+      await openMainTrade('Sell', price); // ✅ Place sell trade
+      await monitorPrice();               // ✅ Start monitoring
+    } else {
+      sendMessage('⚠️ Trade not placed: Main or Hedge already active.');
+    }
+
+  } catch (err) {
+    sendMessage(`❌ manualSellMainTrade error: ${err.message}`);
   }
 }
+
 
 async function manualBuyMainTrade() {
   if (state.isRunning()) return;
@@ -1269,11 +1280,12 @@ async function manualBuyMainTrade() {
 
 
 async function openNewHedgeTrade() {
-  const price = getCurrentPrice();
-    if (!price) {
-      sendMessage("⚠️ Unable to fetch price for main trade on startup.");
-      return;
-    }
+  const price = await getCurrentPrice(); // ✅ await here!
+  if (!price || isNaN(price)) {
+    sendMessage("⚠️ Unable to fetch price for hedge trade.");
+    return;
+  }
+
   const mainTrade = state.getMainTrade();
   const hedgeTrade = state.getHedgeTrade();
   const inCooldown = Date.now() < hedgeCooldownUntil;
@@ -1292,7 +1304,7 @@ async function openNewHedgeTrade() {
               const retryDelay = config.hedgeOpenRetryDelay || 5000;
               sendMessage(`⏳ Retrying hedge in ${retryDelay / 1000} sec...`);
               await delay(retryDelay);
-              await tryOpenHedge();
+              await tryOpenHedge(); // Recursive retry
             }
           } finally {
             hedgeOpeningInProgress = false;
@@ -1312,7 +1324,7 @@ async function openNewHedgeTrade() {
               const retryDelay = config.hedgeOpenRetryDelay || 5000;
               sendMessage(`⏳ Retrying hedge in ${retryDelay / 1000} sec...`);
               await delay(retryDelay);
-              await tryOpenHedge();
+              await tryOpenHedge(); // Recursive retry
             }
           } finally {
             hedgeOpeningInProgress = false;
@@ -1322,6 +1334,8 @@ async function openNewHedgeTrade() {
     };
 
     await tryOpenHedge();
+  } else {
+    sendMessage("⚠️ Hedge not opened: Already active, opening in progress, or in cooldown.");
   }
 }
 
