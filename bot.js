@@ -81,7 +81,7 @@ async function checkForNewTradeOpportunity(price) {
 
 
   boundaries = {
-    top: toPrecision(price + spacing),
+    top: null,
     bottom: toPrecision(price - spacing)
   };
   saveBoundary({ trailingBoundary, boundaries });
@@ -101,7 +101,7 @@ async function checkForNewTradeOpportunity(price) {
 
   boundaries = {
     top: toPrecision(price + spacing),
-    bottom: toPrecision(price - spacing)
+    bottom: null
   };
   saveBoundary({ trailingBoundary, boundaries });
 
