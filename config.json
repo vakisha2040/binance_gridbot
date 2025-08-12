@@ -8,7 +8,7 @@
   "hedgeCooldownPeriod": 4000,
   "initialTradeSide": "Buy",
   "startPrice": null,
-  "tradeEntrySpacing": 350,
+  "tradeEntrySpacing": 200,
   "emergencySpacing": 200,
   "freshBoundarySpacing": 200,
   "trailingBoundary": 360,
