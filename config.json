@@ -34,7 +34,7 @@
   "levelBasedSpacing": false,
   "debug": false,
   "boundaryUpdateInterval": 6000,
-  "boundaryTolerance": 20,
+  "boundaryTolerance": 10,
   "trailingThreshold": 350,
     "oneWayTrailing": true,
   "emergencyThresholdMultiplier": 0.2
