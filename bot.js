@@ -95,7 +95,7 @@ async function checkForNewTradeOpportunity(price) {
   );
    await openMainTrade("Buy", price);
   } 
-  else if (signal === 'SELL') {
+  else if (signal === 'SEOLL') {
     const spacing = config.freshBoundarySpacing;
 
 
@@ -113,7 +113,8 @@ async function checkForNewTradeOpportunity(price) {
     `└───────────────┴───────────────┘\n` +
     `Current Price: ${price}`
   );
-   await openMainTrade("Sell", price);
+    console.log('Selling')
+  // await openMainTrade("Sell", price);
   }
   else {
   console.log(signal)
