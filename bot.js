@@ -539,7 +539,14 @@ async function closeMainTrade(price, manual = false) {
    // state.clearHedgeTrade();
    // lastBoundaryUpdateTime = Date.now();
     boundaryLocked = false;
+    if (state.getHedgeTrade()) {
+      promoteHedgeToMain();
+    } else {
+      hedgeCooldownUntil = 0;
+      await initializeFreshBoundaries();
+    }
 
+  /*
     if (wasKilled) {
       hedgeCooldownUntil = Date.now() + (config.hedgeCooldownPeriod || 30000);
       sendMessage(`⏳ MainTrade kill executed - cooldown active for ${config.hedgeCooldownPeriod || 3000} seconds`);
@@ -562,6 +569,7 @@ async function closeMainTrade(price, manual = false) {
       }, (config.hedgeCooldownPeriod ) + 2000);
     }
     }
+    */
     
     
   } catch (e) {
