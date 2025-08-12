@@ -533,7 +533,7 @@ async function closeMainTrade(price, manual = false) {
     state.clearMainTrade();
     let lastClose = null;
 
-    const wasKilled = mainTrade.killTriggered;
+    //const wasKilled = mainTrade.killTriggered;
     //lastHedgeClosePrice = price;
     //lastClose = price;
    // state.clearHedgeTrade();
