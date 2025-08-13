@@ -28,6 +28,8 @@
   "mainKillCooldown": 40000,
   "hedgeKillSpacing": 70,
   "hedgeBreakthroughPrice":180,
+  "mainKillSpacing": 70,
+  "mainBreakthroughPrice":480,
   "hedgeKillResetMultiplier": 1.11,
   "closePositionsOnStop": true,
   "hedgeOpenRetryDelay": 20000,
