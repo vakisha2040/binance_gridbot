@@ -9,7 +9,7 @@
 "mainCooldownPeriod": 40000,
   "initialTradeSide": "Buy",
   "startPrice": null,
-  "tradeEntrySpacing": 360,
+  "tradeEntrySpacing": 200,
   "emergencySpacing": 200,
   "freshBoundarySpacing": 200,
   "trailingBoundary": 360,
