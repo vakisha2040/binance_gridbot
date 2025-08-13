@@ -589,19 +589,25 @@ async function closeMainTrade(price, manual = false) {
   try {
     const mainTrade = state.getMainTrade();
     if (!mainTrade) return;
+    
+    let wasKilled = mainTrade.killTriggered;
+
 
     await bybit.closeMainTrade(mainTrade.side, config.orderSize);
     sendMessage(`✅ ${mainTrade.side} trade closed at ${price}`);
 
     state.clearMainTrade();
     boundaryLocked = false;
-
-    const wasKilled = mainTrade.killTriggered;
+        let lastClose = null;
 
     // --- PATCH START: Always promote hedge to main if it exists ---
     if (state.getHedgeTrade()) {
       promoteHedgeToMain();
+    } else {
+      hedgeCooldownUntil = 0;
+      await initializeFreshBoundaries();
     }
+
     // --- PATCH END ---
 
     if (wasKilled) {
@@ -762,8 +768,8 @@ async function handleHedgeTrade(price) {
 async function killMain() {
   const main = state.getMainTrade();
   if (!main) return;
-  const currentPrice = getCurrentPrice();
-  if (!currentPrice) return;
+  const price = getCurrentPrice();
+  if (!price) return;
   
   const isBuy = main.side === 'Buy';
   const entry = main.entry;
@@ -775,8 +781,8 @@ async function killMain() {
     : feeAdjustedEntry - killSpacing;
 
   if (!main.killTriggered) {
-    const shouldArm = (isBuy && currentPrice >= killTriggerPrice) || 
-                     (!isBuy && currentPrice <= killTriggerPrice);   
+    const shouldArm = (isBuy && price >= killTriggerPrice) || 
+                     (!isBuy && price <= killTriggerPrice);   
     if (shouldArm) {
       main.killTriggered = true;   
       if (!main.armedNotificationSent) {
@@ -794,19 +800,19 @@ async function killMain() {
   }
 
   if (main.killTriggered) {
-    const shouldKill = (isBuy && currentPrice <= feeAdjustedEntry) ||
-                      (!isBuy && currentPrice >= feeAdjustedEntry);
+    const shouldKill = (isBuy && price <= feeAdjustedEntry) ||
+                      (!isBuy && price >= feeAdjustedEntry);
     
     if (shouldKill) {
       sendMessage(
         `💀 MAIN KILL EXECUTED\n` +
         `▫️ Type: ${main.side}\n` +
         `▫️ Entry: ${entry}\n` +
-        `▫️ Exit: ${currentPrice}\n` +
+        `▫️ Exit: ${price}\n` +
         `▫️ Fees Recovered: ${HBP}\n` +
-        `▫️ Net PnL: ${isBuy ? (currentPrice - entry - HBP) : (entry - currentPrice - HBP)}`
+        `▫️ Net PnL: ${isBuy ? (price - entry - HBP) : (entry - price - HBP)}`
       );
-      await closeMainTrade(currentPrice);
+      await closeMainTrade(price);
     }
   }
 }
@@ -818,8 +824,8 @@ async function killMain() {
 async function killHedge() {
   const hedge = state.getHedgeTrade();
   if (!hedge) return;
-  const currentPrice = getCurrentPrice();
-  if (!currentPrice) return;
+  const price = getCurrentPrice();
+  if (!price) return;
   
   const isBuy = hedge.side === 'Buy';
   const entry = hedge.entry;
@@ -831,8 +837,8 @@ async function killHedge() {
     : feeAdjustedEntry - killSpacing;
 
   if (!hedge.killTriggered) {
-    const shouldArm = (isBuy && currentPrice >= killTriggerPrice) || 
-                     (!isBuy && currentPrice <= killTriggerPrice);   
+    const shouldArm = (isBuy && price >= killTriggerPrice) || 
+                     (!isBuy && price <= killTriggerPrice);   
     if (shouldArm) {
       hedge.killTriggered = true;   
       if (!hedge.armedNotificationSent) {
@@ -850,19 +856,19 @@ async function killHedge() {
   }
 
   if (hedge.killTriggered) {
-    const shouldKill = (isBuy && currentPrice <= feeAdjustedEntry) ||
-                      (!isBuy && currentPrice >= feeAdjustedEntry);
+    const shouldKill = (isBuy && price <= feeAdjustedEntry) ||
+                      (!isBuy && price >= feeAdjustedEntry);
     
     if (shouldKill) {
       sendMessage(
         `💀 HEDGE KILL EXECUTED\n` +
         `▫️ Type: ${hedge.side}\n` +
         `▫️ Entry: ${entry}\n` +
-        `▫️ Exit: ${currentPrice}\n` +
+        `▫️ Exit: ${price}\n` +
         `▫️ Fees Recovered: ${HBP}\n` +
-        `▫️ Net PnL: ${isBuy ? (currentPrice - entry - HBP) : (entry - currentPrice - HBP)}`
+        `▫️ Net PnL: ${isBuy ? (price - entry - HBP) : (entry - price - HBP)}`
       );
-      await closeHedgeTrade(currentPrice);
+      await closeHedgeTrade(price);
     }
   }
 }
