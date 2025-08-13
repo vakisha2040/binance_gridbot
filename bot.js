@@ -159,7 +159,7 @@ const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
   //  openMainTrade("Buy", price);
     sendMessage(` 🕐 Signal is BUY, Placing Buy order...`);
   } 
-  else if (signal === 'SELL') {
+  else if (signal === 'SEOLL') {
   //  openMainTrade("Sell", price);
     sendMessage(` 🕐 Signal is SELL, Placing sell order...`);
   }  
