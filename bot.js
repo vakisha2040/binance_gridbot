@@ -37,6 +37,7 @@ if (!boundaries){
 let lastClose = null;
 let lastHedgeClosePrice = null;
 let hedgeCooldownUntil = 0;
+let mainCooldownUntil = 0
 let sentReadyTrigger = false;
 let sentKillTrigger = false;
 //let lastBoundaryUpdateTime = 0;
@@ -264,7 +265,8 @@ async function monitorPrice() {
       const hedgeTrade = state.getHedgeTrade();
       const inCooldown = Date.now() < hedgeCooldownUntil;
       const now = Date.now();
-
+    const mainInCooldown = Date.now() < mainCooldownUntil;
+   
       // 1. HEDGE TRADE OPENING LOGIC ===========================================
       if (!hedgeTrade && !hedgeOpeningInProgress && !inCooldown) {
         // For Buy main trades (need Sell hedge)
@@ -385,8 +387,8 @@ async function monitorPrice() {
 if (!mainTrade && !hedgeTrade) {
   // 1. Handle cooldown first
   if (inCooldown) {
-    if (now >= hedgeCooldownUntil - 5000) {
-      sendMessage(`⏳ Cooldown ends in ${Math.ceil((hedgeCooldownUntil - now)/1000)}s`);
+    if (now >= CooldownUntil - 5000) {
+      sendMessage(`⏳ Cooldown ends in ${Math.ceil((mainCooldownUntil - now)/1000)}s`);
     }
   } 
   // 2. Prepare new trading environment
@@ -604,15 +606,15 @@ async function closeMainTrade(price, manual = false) {
     if (state.getHedgeTrade()) {
       promoteHedgeToMain();
     } else {
-      hedgeCooldownUntil = 0;
+      mainCooldownUntil = 0;
       await initializeFreshBoundaries();
     }
 
     // --- PATCH END ---
 
     if (wasKilled) {
-      hedgeCooldownUntil = Date.now() + (config.hedgeCooldownPeriod || 30000);
-      sendMessage(`⏳ MainTrade kill executed - cooldown active for ${config.hedgeCooldownPeriod || 3000} seconds`);
+      mainCooldownUntil = Date.now() + (config.mainCooldownPeriod || 30000);
+      sendMessage(`⏳ MainTrade kill executed - cooldown active for ${config.mainCooldownPeriod || 3000} seconds`);
 
       boundaries.top = null;
       boundaries.bottom = null;
@@ -626,7 +628,7 @@ async function closeMainTrade(price, manual = false) {
             sendMessage(`🔄 Cooldown expired - setting up new boundary`);
             await initializeFreshBoundaries(); 
           }
-        }, (config.hedgeCooldownPeriod ) + 2000);
+        }, (config.mainCooldownPeriod ) + 2000);
       }
     }
     
