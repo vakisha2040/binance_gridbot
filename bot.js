@@ -604,7 +604,7 @@ async function closeMainTrade(price, manual = false) {
 
     // --- PATCH START: Always promote hedge to main if it exists ---
     if (state.getHedgeTrade()) {
-      promoteHedgeToMain();
+      promoteHedgeToMain(price);
     } else {
       mainCooldownUntil = 0;
       await initializeFreshBoundaries();
@@ -662,7 +662,7 @@ function initializeHedgePromotionBoundary() {
   }
 }
 
-function promoteHedgeToMain() {
+function promoteHedgeToMain(price) {
   const hedge = state.getHedgeTrade();
   if (!hedge) return;
   hedge.level = 0;
