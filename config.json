@@ -18,7 +18,7 @@
   "zeroLevelSpacing":360,
   "newBoundarySpacing": 200,
   "gridLevels": 120,
-  "gridStopLossPercent": 0.76,
+  "gridStopLossPercent": 0.86,
   "cooldownTime": 5000,
   "minHedgeBoundaryMove": 350,
   "hedgeReentryCooldown": 50000,
