@@ -522,6 +522,7 @@ async function handleMainTrade(price) {
   }
 }
 
+/*
 async function closeMainTrade(price, manual = false) {
   try {
     const mainTrade = state.getMainTrade();
@@ -546,7 +547,7 @@ async function closeMainTrade(price, manual = false) {
       await initializeFreshBoundaries();
     }
 
-  /*
+  
     if (wasKilled) {
       hedgeCooldownUntil = Date.now() + (config.hedgeCooldownPeriod || 30000);
       sendMessage(`⏳ MainTrade kill executed - cooldown active for ${config.hedgeCooldownPeriod || 3000} seconds`);
@@ -569,7 +570,59 @@ async function closeMainTrade(price, manual = false) {
       }, (config.hedgeCooldownPeriod ) + 2000);
     }
     }
-    */
+    
+    
+    
+  } catch (e) {
+    sendMessage(`❌ Close failed: ${e.message}`);
+  }
+}
+
+*/
+
+
+// new close function with fixed hedge To main promotion
+
+// --- PATCH: Always promote hedge to main when main trade is closed, regardless of closure reason ---
+
+async function closeMainTrade(price, manual = false) {
+  try {
+    const mainTrade = state.getMainTrade();
+    if (!mainTrade) return;
+
+    await bybit.closeMainTrade(mainTrade.side, config.orderSize);
+    sendMessage(`✅ ${mainTrade.side} trade closed at ${price}`);
+
+    state.clearMainTrade();
+    boundaryLocked = false;
+
+    const wasKilled = mainTrade.killTriggered;
+
+    // --- PATCH START: Always promote hedge to main if it exists ---
+    if (state.getHedgeTrade()) {
+      promoteHedgeToMain();
+    }
+    // --- PATCH END ---
+
+    if (wasKilled) {
+      hedgeCooldownUntil = Date.now() + (config.hedgeCooldownPeriod || 30000);
+      sendMessage(`⏳ MainTrade kill executed - cooldown active for ${config.hedgeCooldownPeriod || 3000} seconds`);
+
+      boundaries.top = null;
+      boundaries.bottom = null;
+      saveBoundary({ trailingBoundary, boundaries });
+      hedgeToMain = false
+       
+      // The above promotion already handled
+      if (!state.getHedgeTrade() && !state.getMainTrade()) {
+        setTimeout(async () => {
+          if (!state.getHedgeTrade() && !state.getMainTrade()) {
+            sendMessage(`🔄 Cooldown expired - setting up new boundary`);
+            await initializeFreshBoundaries(); 
+          }
+        }, (config.hedgeCooldownPeriod ) + 2000);
+      }
+    }
     
     
   } catch (e) {
