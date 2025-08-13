@@ -3,7 +3,7 @@
   "tickSize": 0.1,
   "pricePrecision": 2,
   "stepSize": 0.1,
-  "leverage": 70,
+  "leverage": 75,
   "orderSize": 0.002,
   "hedgeCooldownPeriod": 50000,
   "initialTradeSide": "Buy",
