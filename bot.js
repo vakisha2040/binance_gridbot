@@ -775,7 +775,7 @@ async function killMain() {
   
   const isBuy = main.side === 'Buy';
   const entry = main.entry;
-  const HBP = config.hedgeBreakthroughPrice;
+  const HBP = config.mainBreakthroughPrice;
   const killSpacing = config.mainKillSpacing;
   const feeAdjustedEntry = isBuy ? entry + HBP : entry - HBP;
   const killTriggerPrice = isBuy 
