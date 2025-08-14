@@ -356,7 +356,7 @@ async function monitorPrice() {
             // Trail if price moved favorably beyond threshold
             if (priceFromBoundary > (config.trailingThreshold)) {
             if (mainTrade && !hedgeTrade && !boundaryLocked) {
- 
+             sendMessage(`🚨 BOUNDARY SHOULD UPDATE (price moved ${priceFromBoundary} from last boundary)`);
               //await setImmediateHedgeBoundary(price, true, mainTrade);
               await constantHedgeTrailingBoundary(price, true, mainTrade);
             }
@@ -365,7 +365,7 @@ async function monitorPrice() {
             // Emergency boundary update if price moved too far
             const emergencyThreshold = (config.zeroLevelSpacing * 2);
             if (priceFromBoundary > emergencyThreshold) {
-            //  sendMessage(`🚨 EMERGENCY BOUNDARY UPDATE (moved ${priceFromBoundary} from boundary)`);
+              sendMessage(`🚨 EMERGENCY BOUNDARY UPDATE (moved ${priceFromBoundary} from boundary)`);
               if (mainTrade && !hedgeTrade && !boundaryLocked) {
  // await setImmediateHedgeBoundary(price, true, mainTrade);
     await constantHedgeTrailingBoundary(price, true, mainTrade);
@@ -429,6 +429,8 @@ if (!mainTrade && !hedgeTrade) {
       if (now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL) {
         if (mainTrade && !hedgeTrade && !boundaryLocked) {
    //await setImmediateHedgeBoundary(price, true, mainTrade);
+         sendMessage(`🚨 BOUNDARY SHOULD UPDATE (price moved ${priceFromBoundary} point from last boundary)`);
+        
           await constantHedgeTrailingBoundary(price, true, mainTrade);
 }
         lastBoundaryUpdateTime = now;
