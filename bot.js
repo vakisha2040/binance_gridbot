@@ -429,9 +429,9 @@ if (!mainTrade && !hedgeTrade) {
       if (now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL) {
         if (mainTrade && !hedgeTrade && !boundaryLocked) {
    //await setImmediateHedgeBoundary(price, true, mainTrade);
-         sendMessage(`🚨 BOUNDARY SHOULD UPDATE (price moved ${priceFromBoundary} point from last boundary)`);
+       //  sendMessage(`🚨 BOUNDARY SHOULD UPDATE (price moved too from last boundary)`);
         
-          await constantHedgeTrailingBoundary(price, true, mainTrade);
+         // await constantHedgeTrailingBoundary(price, true, mainTrade);
 }
         lastBoundaryUpdateTime = now;
       }
