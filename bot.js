@@ -48,6 +48,7 @@ let preKillStartTime = null;
 let lastKillResetTime = 0; 
 let hedgeOpeningInProgress = false;
 let boundaryLocked = false;
+let maintainedDistance = config.constantTrailingDistance;
 
 const { analyze } = require('./technical');
 
@@ -355,8 +356,10 @@ async function monitorPrice() {
             // Trail if price moved favorably beyond threshold
             if (priceFromBoundary > (config.trailingThreshold)) {
             if (mainTrade && !hedgeTrade && !boundaryLocked) {
-  await setImmediateHedgeBoundary(price, true, mainTrade);
-}
+ 
+              //await setImmediateHedgeBoundary(price, true, mainTrade);
+              await constantHedgeTrailingBoundary(price, true, mainTrade);
+            }
             }
 
             // Emergency boundary update if price moved too far
@@ -364,8 +367,9 @@ async function monitorPrice() {
             if (priceFromBoundary > emergencyThreshold) {
             //  sendMessage(`🚨 EMERGENCY BOUNDARY UPDATE (moved ${priceFromBoundary} from boundary)`);
               if (mainTrade && !hedgeTrade && !boundaryLocked) {
-  await setImmediateHedgeBoundary(price, true, mainTrade);
-}
+ // await setImmediateHedgeBoundary(price, true, mainTrade);
+    await constantHedgeTrailingBoundary(price, true, mainTrade);
+              }
             }
           }
         }
@@ -424,7 +428,8 @@ if (!mainTrade && !hedgeTrade) {
       // 6. PERIODIC BOUNDARY CHECK ===========================================
       if (now - lastBoundaryUpdateTime > BOUNDARY_UPDATE_INTERVAL) {
         if (mainTrade && !hedgeTrade && !boundaryLocked) {
-   await setImmediateHedgeBoundary(price, true, mainTrade);
+   //await setImmediateHedgeBoundary(price, true, mainTrade);
+          await constantHedgeTrailingBoundary(price, true, mainTrade);
 }
         lastBoundaryUpdateTime = now;
       }
@@ -600,7 +605,7 @@ async function closeMainTrade(price, manual = false) {
 
     state.clearMainTrade();
     boundaryLocked = false;
-        let lastClose = null;
+     lastClose = null;
 
     // --- PATCH START: Always promote hedge to main if it exists ---
     if (state.getHedgeTrade()) {
@@ -650,13 +655,13 @@ function initializeHedgePromotionBoundary() {
   if (mainTrade.side === 'Buy') {
     boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
     boundaries.top = null;
-   let lastClose = boundaries.bottom;
+    lastClose = boundaries.bottom;
     saveBoundary({ trailingBoundary, boundaries });
     sendMessage(`🔲 (Hedge->Main) Bottom boundary set: ${boundaries.bottom}`);
   } else if (mainTrade.side === 'Sell') {
     boundaries.top = toPrecision(price + config.newBoundarySpacing);
     boundaries.bottom = null;
-    let lastClose = boundaries.top;
+    lastClose = boundaries.top;
     saveBoundary({ trailingBoundary, boundaries });
     sendMessage(`🔲 (Hedge->Main) Top boundary set: ${boundaries.top}`);
   }
@@ -933,7 +938,7 @@ function checkAndTrailBoundaries(price) {
     : currentBoundary - price;
 
   // Trail if price has moved favorably
-  if (distance > (config.trailingThreshold || 50)) {
+  if (distance > (config.trailingThreshold )) {
   // await setImmediateHedgeBoundary(price);
   }
 }
@@ -953,12 +958,12 @@ async function initializeNewHedgeBoundaries() {
     if (mainTrade.side === 'Buy') {
       boundaries.bottom = toPrecision(price - config.newBoundarySpacing);
       boundaries.top = null;
-      let lastClose = boundaries.bottom;
+      lastClose = boundaries.bottom;
       sendMessage(`🔵 For buy main trade - New hedge bottom boundary set at ${boundaries.bottom} (current: ${price})`);
     } else {
       boundaries.top = toPrecision(price + config.newBoundarySpacing);
       boundaries.bottom = null;
-      let lastClose = boundaries.top;
+      lastClose = boundaries.top;
       sendMessage(`🔴 For sell main trade - New hedge top boundary set at ${boundaries.top} (current: ${price})`);
     }
   } else {
@@ -972,7 +977,49 @@ async function initializeNewHedgeBoundaries() {
 }
 
 
+// Rewritten setImmediateHedgeBoundary: trails boundary only one way
+//always maintaining constantTrailingDistance  points from current price
+async function constantHedgeTrailingBoundary(price, force = false, mainTradeArg = null) {
+    // Use provided mainTrade if given, else get fresh from state
+    const mainTrade = mainTradeArg || state.getMainTrade();
+   let constantDistance = maintainedDistance;
+  if (!mainTrade) return;
+    if (boundaryLocked) return;
 
+    // Only trail one way: Buy → boundary below price; Sell → boundary above price
+    let proposedBoundary;
+    if (mainTrade.side === 'Buy') {
+        proposedBoundary = toPrecision(price - constantDistance, config.pricePrecision);
+        // Only update if boundary moves UP (towards price, i.e., becomes less distant)
+        if (boundaries.bottom === null || proposedBoundary > boundaries.bottom) {
+            boundaries.bottom = proposedBoundary;
+            boundaries.top = null;
+        } else {
+            // Don't allow boundary to move away from price
+            return;
+        }
+    } else if (mainTrade.side === 'Sell') {
+        proposedBoundary = toPrecision(price + constantDistance, config.pricePrecision);
+        // Only update if boundary moves DOWN (towards price)
+        if (boundaries.top === null || proposedBoundary < boundaries.top) {
+            boundaries.top = proposedBoundary;
+            boundaries.bottom = null;
+        } else {
+            // Don't allow boundary to move away from price
+            return;
+        }
+    }
+
+    // Save new boundary and notify
+    await saveBoundary({ trailingBoundary, boundaries });
+    sendMessage(
+        `🔄 Boundary trailed towards price\n` +
+        `🟦 Main Trade: ${mainTrade.side}\n` +
+        `📈 Current price: ${toPrecision(price, config.pricePrecision)}\n` +
+        `🎯 New boundary: ${mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top}\n` +
+        `🚨 Maintained distance: ${constantDistance} points`
+    );
+}
 
 
 // Pass mainTrade as parameter to setImmediateHedgeBoundary for guaranteed sync
@@ -981,11 +1028,11 @@ async function setImmediateHedgeBoundary(price, force = false, mainTradeArg = nu
     // Use provided mainTrade if given, else get fresh from state
     const mainTrade = mainTradeArg || state.getMainTrade();
     if (!mainTrade) {
-        //sendMessage(`[DEBUG] No mainTrade, skipping boundary update. Current mainTrade: ${JSON.stringify(state.getMainTrade())}`);
+        sendMessage(`[DEBUG] No mainTrade, skipping boundary update. Current mainTrade: ${JSON.stringify(state.getMainTrade())}`);
         return;
     }
     if (boundaryLocked && !force) {
-       // sendMessage("[DEBUG] Boundary is locked and not forced");
+        sendMessage("[DEBUG] Boundary is locked and not forced");
         return;
     }
 
