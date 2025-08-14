@@ -13,6 +13,7 @@
   "emergencySpacing": 200,
   "freshBoundarySpacing": 200,
   "trailingBoundary": 350,
+  "constantTrailingDistance": 200,
   "boundaryStickyness": 320,
   "maxHedgeTrailDistance": 380, 
   "gridSpacing": 360,
