@@ -611,7 +611,7 @@ async function closeMainTrade(price, manual = false) {
 
     // --- PATCH START: Always promote hedge to main if it exists ---
     if (state.getHedgeTrade()) {
-      promoteHedgeToMain(price);
+     await promoteHedgeToMain(price);
     } else {
       mainCooldownUntil = 0;
       await initializeFreshBoundaries();
@@ -647,7 +647,7 @@ async function closeMainTrade(price, manual = false) {
 
 
 
-function initializeHedgePromotionBoundary() {
+async function initializeHedgePromotionBoundary() {
   const mainTrade = state.getMainTrade();
   const price = getCurrentPrice();
   if (!mainTrade || !price) {
@@ -674,7 +674,7 @@ function initializeHedgePromotionBoundary() {
   await initializeNewHedgeBoundaries();
 }
 
-function promoteHedgeToMain(price) {
+async function promoteHedgeToMain(price) {
   const hedge = state.getHedgeTrade();
   if (!hedge) return;
   hedge.level = 0;
@@ -689,7 +689,7 @@ function promoteHedgeToMain(price) {
   hedgeToMain = true;
   lastClose = price;
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
-  initializeHedgePromotionBoundary();
+ await initializeHedgePromotionBoundary();
   state.clearHedgeTrade();
 } 
 
