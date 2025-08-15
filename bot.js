@@ -690,9 +690,10 @@ async function promoteHedgeToMain(price) {
   lastClose = price;
   extremeBoundary = null;
   sendMessage('🔁 Hedge trade promoted to main trade. Grid reset and stop loss cleared.');
- await initializeHedgePromotionBoundary();
+ //await initializeHedgePromotionBoundary();
   state.clearHedgeTrade();
-    const currentPrice = getCurrentPrice();
+  await initializeNewHedgeBoundaries();
+  const currentPrice = getCurrentPrice();
   await constantHedgeTrailingBoundary(currentPrice, true, state.getMainTrade());
 
 } 
