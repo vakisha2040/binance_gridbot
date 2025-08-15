@@ -667,6 +667,11 @@ function initializeHedgePromotionBoundary() {
     saveBoundary({ trailingBoundary, boundaries });
     sendMessage(`🔲 (Hedge->Main) Top boundary set: ${boundaries.top}`);
   }
+  lastHedgeClosePrice = price;
+   //state.clearHedgeTrade();
+    lastBoundaryUpdateTime = Date.now();
+    boundaryLocked = false;
+  await initializeNewHedgeBoundaries();
 }
 
 function promoteHedgeToMain(price) {
