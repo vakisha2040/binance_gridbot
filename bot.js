@@ -836,7 +836,7 @@ async function killMain() {
   }
 }
 
-async function getCurrentPrice() {
+async function getMarketPrice() {
    const price = getCurrentPrice();
   if (!price) return;
   sendMessage(`🔒 The current price of ${config.coin} is ${price}`);
@@ -1315,7 +1315,7 @@ module.exports = {
   manualBuyMainTrade,
   manualSellMainTrade,
   promoteHedgeToMain,
-  getCurrentPrice,
+  getMarketPrice,
   initializeEmergencyBoundaries,
   resetBot,
 };
