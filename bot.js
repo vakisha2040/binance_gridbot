@@ -836,7 +836,12 @@ async function killMain() {
   }
 }
 
-
+async function getCurrentPrice() {
+   const price = getCurrentPrice();
+  if (!price) return;
+  sendMessage(`🔒 The current price of ${config.coin} is ${price}`);
+    }
+}
 
 
 
