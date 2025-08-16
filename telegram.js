@@ -12,7 +12,7 @@ const {
   manualBuyMainTrade,
   manualSellMainTrade,
   manualCloseHedgeTrade,
-  getCurrentPrice,
+  getMarketPrice,
   openNewHedgeTrade,
   initializeEmergencyBoundaries,
   resetBot,
@@ -64,7 +64,7 @@ function getInlineKeyboard() {
           { text: '🟢 🔼 Buy', callback_data: 'buy_main_trade' },
           { text: '🔴 🔻 Sell', callback_data: 'sell_main_trade' }
         ],
-        [ get_price
+        [ 
           { text: '🔼 Set Boundary', callback_data: 'set_boundary' },
           { text: '🔄 Open Hedge', callback_data: 'open_hedge_trade' }
         ],
@@ -127,7 +127,7 @@ bot.on('callback_query', async (query) => {
 
       case 'get_price':
       respond('🔼 Getting current price...');
-   await getCurrentPrice();
+      await getMarketPrice();
       break;
       
       case 'open_hedge_trade':
