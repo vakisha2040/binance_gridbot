@@ -346,7 +346,7 @@ async function monitorPrice() {
         }
 
         // Price trailing for main trade
-        if (!hedgeTrade && !boundaryLocked) {
+        if (!hedgeTrade) {
           const currentBoundary = mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top;
           if (currentBoundary) {
             const priceFromBoundary = mainTrade.side === 'Buy' 
