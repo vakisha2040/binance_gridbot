@@ -14,7 +14,7 @@
   "emergencySpacing": 200,
   "freshBoundarySpacing": 200,
   "trailingBoundary": 300,
-  "constantTrailingDistance": 200,
+  "constantTrailingDistance": 300,
   "boundaryStickyness": 200,
   "maxHedgeTrailDistance": 300, 
   "gridSpacing": 360,
@@ -41,7 +41,7 @@
   "debug": false,
   "boundaryUpdateInterval": 5000,
   "boundaryTolerance": 10,
-  "trailingThreshold": 250,
+  "trailingThreshold": 350,
     "oneWayTrailing": true,
   "emergencyThresholdMultiplier": 0.2
 }
