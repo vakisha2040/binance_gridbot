@@ -355,7 +355,7 @@ async function monitorPrice() {
 
             // Trail if price moved favorably beyond threshold
             if (priceFromBoundary > (config.trailingThreshold)) {
-            if (mainTrade && !hedgeTrade && !boundaryLocked) {
+            if (mainTrade && !hedgeTrade) {
              sendMessage(`🚨 BOUNDARY SHOULD UPDATE (price moved ${priceFromBoundary} from last boundary)`);
               //await setImmediateHedgeBoundary(price, true, mainTrade);
               await constantHedgeTrailingBoundary(price, true, mainTrade);
