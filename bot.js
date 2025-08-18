@@ -139,11 +139,11 @@ async function startBot() {
   
   if (mainTrade) {
     sendMessage(`📦 Resuming main trade: ${mainTrade.side} from ${mainTrade.entry} at level ${mainTrade.level}`);
-    await initializeHedgePromotionBoundary();
+    //await initializeHedgePromotionBoundary();
   } 
   else if (hedgeTrade) {
     sendMessage(`🛡️ Found existing hedge trade - promoting to main`);
-    promoteHedgeToMain();
+   // promoteHedgeToMain();
   }
   else {
     const price = getCurrentPrice();
