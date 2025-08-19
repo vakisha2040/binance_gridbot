@@ -73,15 +73,21 @@ await checkForNewTradeOpportunity(price); // Immediate check
 
 async function checkForNewTradeOpportunity(price) {
  
-  if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) 
-    return;
+  //if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) 
+   // return;
 
   const signal =  await analyze();
  
   if (signal === 'BUY') {
+    
     const spacing = config.freshBoundarySpacing;
-
-
+const hedgeTrade = state.getHedgeTrade();
+if (hedgeTrade){
+ await manualCloseHedgeTrade();
+}
+    else {
+      if (state.getMainTrade()) 
+    return;
   boundaries = {
     top: null,
     bottom: toPrecision(price - spacing)
@@ -96,11 +102,17 @@ async function checkForNewTradeOpportunity(price) {
     `Current Price: ${price}`
   );
    await openMainTrade("Buy", price);
+    }
   } 
-  else if (signal === 'SEOLL') {
+  else if (signal === 'SELL') {
     const spacing = config.freshBoundarySpacing;
-
-
+const hedgeTrade = state.getHedgeTrade();
+if (hedgeTrade){
+ await manualCloseHedgeTrade();
+}
+    else {
+if (state.getMainTrade()) 
+    return;
   boundaries = {
     top: toPrecision(price + spacing),
     bottom: null
@@ -118,6 +130,7 @@ async function checkForNewTradeOpportunity(price) {
     console.log('Selling')
   // await openMainTrade("Sell", price);
   }
+}    //sell ends here
   else {
   console.log(signal)
 //  const initialSide = config.initialTradeSide || 'Buy';
