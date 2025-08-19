@@ -1302,7 +1302,7 @@ async function openNewHedgeTrade() {
     if (mainTrade?.side === 'Buy' && boundaries.bottom) {
       const effectiveBoundary = boundaries.bottom + config.boundaryTolerance;
     //  if (price <= effectiveBoundary) {
-       if (price  >= effectiveBoundary) {
+       if (price) {
       hedgeOpeningInProgress = true;
         try {
           await openHedgeTrade('Sell', price);
