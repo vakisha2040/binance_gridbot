@@ -282,7 +282,22 @@ async function monitorPrice() {
       const inCooldown = Date.now() < hedgeCooldownUntil;
       const now = Date.now();
     const mainInCooldown = Date.now() < mainCooldownUntil;
-   
+
+      //abdicate hedge trade
+   const signal =  await analyze();
+ 
+  if (signal === 'BUY') {
+    
+    if (hedgeTrade && mainTrade.side === 'Buy'){
+ await manualCloseHedgeTrade();
+} 
+    }
+  else if (signal === 'SELL') {    if (hedgeTrade && mainTrade.side === 'Sell'){
+ await manualCloseHedgeTrade();
+    }
+    } else{}
+
+      
       // 1. HEDGE TRADE OPENING LOGIC ===========================================
       if (!hedgeTrade && !hedgeOpeningInProgress && !inCooldown) {
         // For Buy main trades (need Sell hedge)
