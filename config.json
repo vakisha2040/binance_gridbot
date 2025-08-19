@@ -17,8 +17,8 @@
   "constantTrailingDistance": 250,
   "boundaryStickyness": 300,
   "maxHedgeTrailDistance": 300, 
-  "gridSpacing": 300,
-  "zeroLevelSpacing":300,
+  "gridSpacing": 250,
+  "zeroLevelSpacing":250,
   "newBoundarySpacing": 300,
   "gridLevels": 120,
   "gridStopLossPercent": 0.80,
@@ -41,7 +41,7 @@
   "debug": false,
   "boundaryUpdateInterval": 5000,
   "boundaryTolerance": 10,
-  "trailingThreshold": 270,
+  "trailingThreshold": 260,
     "oneWayTrailing": true,
   "emergencyThresholdMultiplier": 0.2
 }
