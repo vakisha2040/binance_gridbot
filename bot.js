@@ -1252,7 +1252,7 @@ async function openNewHedgeTrade() {
   const hedgeTrade = state.getHedgeTrade();
   const inCooldown = Date.now() < hedgeCooldownUntil;
 
-  if (!hedgeTrade && !hedgeOpeningInProgress && !inCooldown) {
+  if (!hedgeTrade) {
     const tryOpenHedge = async () => {
       if (mainTrade?.side === 'Buy' && boundaries.bottom) {
         const effectiveBoundary = boundaries.bottom + config.boundaryTolerance;
