@@ -1022,10 +1022,10 @@ async function initializeNewHedgeBoundaries() {
 //always maintaining constantTrailingDistance  points from current price
 async function constantHedgeTrailingBoundary(price, force = false, mainTradeArg = null) {
     // Use provided mainTrade if given, else get fresh from state
-    const mainTrade = mainTradeArg || state.getMainTrade();
+    const mainTrade = state.getMainTrade();
    let constantDistance = maintainedDistance;
   if (!mainTrade) return;
-    if (boundaryLocked) return;
+   // if (boundaryLocked) return;
 
     // Only trail one way: Buy → boundary below price; Sell → boundary above price
     let proposedBoundary;
