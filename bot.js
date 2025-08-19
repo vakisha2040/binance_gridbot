@@ -83,12 +83,6 @@ async function checkForNewTradeOpportunity(price) {
     const spacing = config.freshBoundarySpacing;
 const mainTrade = state.getMainTrade();
     const hedgeTrade = state.getHedgeTrade();
-if (hedgeTrade && mainTrade.side === 'Buy'){
- await manualCloseHedgeTrade();
-}
-    else {
-      if (mainTrade) 
-    return;
   boundaries = {
     top: null,
     bottom: toPrecision(price - spacing)
@@ -104,17 +98,12 @@ if (hedgeTrade && mainTrade.side === 'Buy'){
   );
    await openMainTrade("Buy", price);
     }
-  } 
+  
   else if (signal === 'SELL') {
     const spacing = config.freshBoundarySpacing;
 const hedgeTrade = state.getHedgeTrade();
 const mainTrade = state.getMainTrade();
-    if (hedgeTrade && mainTrade.side === 'Sell'){
- await manualCloseHedgeTrade();
-}
-    else {
-if (mainTrade) 
-    return;
+    
   boundaries = {
     top: toPrecision(price + spacing),
     bottom: null
@@ -132,7 +121,7 @@ if (mainTrade)
     console.log('Selling')
   await openMainTrade("Sell", price);
   }
-}    //sell ends here
+   //sell ends here
   else {
   console.log(signal)
 //  const initialSide = config.initialTradeSide || 'Buy';
