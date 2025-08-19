@@ -1272,74 +1272,45 @@ async function openNewHedgeTrade() {
     sendMessage("⚠️ Unable to fetch price for hedge trade.");
     return;
   }
+const mainTrade = state.getMainTrade();
+   let constantDistance = 2;
+  if (!mainTrade) return;
+   // if (boundaryLocked) return;
 
-  const mainTrade = state.getMainTrade();
-  const hedgeTrade = state.getHedgeTrade();
-  const inCooldown = Date.now() < hedgeCooldownUntil;
-
-  sendMessage(`[DEBUG] openNewHedgeTrade: price=${price}, mainTrade=${JSON.stringify(mainTrade)}, hedgeTrade=${JSON.stringify(hedgeTrade)}, inCooldown=${inCooldown}, boundaries=${JSON.stringify(boundaries)}`);
-
-  if (inCooldown) {
-    sendMessage("⏳ Hedge cooldown in effect. Will not open new hedge trade.");
-    return;
-  }
-
-  if (hedgeTrade) {
-    sendMessage("⚠️ Hedge not opened: Already active.");
-    return;
-  }
-
-  const tryOpenHedge = async (retryCount = 0) => {
-    // Re-fetch state for each retry
-    const mainTrade = state.getMainTrade();
-    const boundaries = loadBoundary().boundaries; // Or however you re-fetch
-    const price = await getCurrentPrice();
-    if (retryCount > 5) {
-      sendMessage("❌ Max hedge open retries reached.");
-      return;
-    }
-
-    if (mainTrade?.side === 'Buy' && boundaries.bottom) {
-      const effectiveBoundary = boundaries.bottom + config.boundaryTolerance;
-    //  if (price <= effectiveBoundary) {
-       if (price) {
-      hedgeOpeningInProgress = true;
-        try {
-          await openHedgeTrade('Sell', price);
-        } catch (e) {
-          sendMessage(`❌ FAILED to open Sell hedge: ${e.message}`);
-          const retryDelay = config.hedgeOpenRetryDelay || 5000;
-          sendMessage(`⏳ Retrying hedge in ${retryDelay / 1000} sec...`);
-          await delay(retryDelay);
-          await tryOpenHedge(retryCount + 1);
-        } finally {
-          hedgeOpeningInProgress = false;
+    // Only trail one way: Buy → boundary below price; Sell → boundary above price
+    let proposedBoundary;
+    if (mainTrade.side === 'Buy') {
+        proposedBoundary = toPrecision(price - constantDistance, config.pricePrecision);
+        // Only update if boundary moves UP (towards price, i.e., becomes less distant)
+        if (boundaries.bottom === null || proposedBoundary > boundaries.bottom) {
+            boundaries.bottom = proposedBoundary;
+            boundaries.top = null;
+        } else {
+            // Don't allow boundary to move away from price
+            return;
         }
-      }
-    }
-
-    if (mainTrade?.side === 'Sell' && boundaries.top) {
-      const effectiveBoundary = boundaries.top - config.boundaryTolerance;
-     // if (price  >= effectiveBoundary) {
-       if (price ) {
-       
-      hedgeOpeningInProgress = true;
-        try {
-          await openHedgeTrade('Buy', price);
-        } catch (e) {
-          sendMessage(`❌ FAILED to open Buy hedge: ${e.message}`);
-          const retryDelay = config.hedgeOpenRetryDelay || 5000;
-          sendMessage(`⏳ Retrying hedge in ${retryDelay / 1000} sec...`);
-          await delay(retryDelay);
-          await tryOpenHedge(retryCount + 1);
-        } finally {
-          hedgeOpeningInProgress = false;
+    } else if (mainTrade.side === 'Sell') {
+        proposedBoundary = toPrecision(price + constantDistance, config.pricePrecision);
+        // Only update if boundary moves DOWN (towards price)
+        if (boundaries.top === null || proposedBoundary < boundaries.top) {
+            boundaries.top = proposedBoundary;
+            boundaries.bottom = null;
+        } else {
+            // Don't allow boundary to move away from price
+            return;
         }
-      }
     }
-  };
 
-  await tryOpenHedge();
+    // Save new boundary and notify
+    await saveBoundary({ trailingBoundary, boundaries });
+    sendMessage(
+        `🔄 Emergency boundary for hedge enforced\n` +
+        `🟦 Main Trade: ${mainTrade.side}\n` +
+        `📈 Current price: ${toPrecision(price, config.pricePrecision)}\n` +
+        `🎯 New boundary: ${mainTrade.side === 'Buy' ? boundaries.bottom : boundaries.top}\n` +
+        `🚨 Maintained distance: ${constantDistance} points`
+    );
+
 }
 /*
 async function openNewHedgeTrade() {
