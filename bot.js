@@ -87,7 +87,7 @@ if (hedgeTrade && mainTrade.side === 'Buy'){
  await manualCloseHedgeTrade();
 }
     else {
-      if (state.getMainTrade()) 
+      if (mainTrade) 
     return;
   boundaries = {
     top: null,
@@ -113,7 +113,7 @@ const mainTrade = state.getMainTrade();
  await manualCloseHedgeTrade();
 }
     else {
-if (state.getMainTrade()) 
+if (mainTrade) 
     return;
   boundaries = {
     top: toPrecision(price + spacing),
