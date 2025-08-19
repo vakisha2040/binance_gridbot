@@ -1265,6 +1265,80 @@ async function manualBuyMainTrade() {
 }
 
 
+
+async function openNewHedgeTrade() {
+  const price = await getCurrentPrice();
+  if (!price || isNaN(price)) {
+    sendMessage("⚠️ Unable to fetch price for hedge trade.");
+    return;
+  }
+
+  const mainTrade = state.getMainTrade();
+  const hedgeTrade = state.getHedgeTrade();
+  const inCooldown = Date.now() < hedgeCooldownUntil;
+
+  sendMessage(`[DEBUG] openNewHedgeTrade: price=${price}, mainTrade=${JSON.stringify(mainTrade)}, hedgeTrade=${JSON.stringify(hedgeTrade)}, inCooldown=${inCooldown}, boundaries=${JSON.stringify(boundaries)}`);
+
+  if (inCooldown) {
+    sendMessage("⏳ Hedge cooldown in effect. Will not open new hedge trade.");
+    return;
+  }
+
+  if (hedgeTrade) {
+    sendMessage("⚠️ Hedge not opened: Already active.");
+    return;
+  }
+
+  const tryOpenHedge = async (retryCount = 0) => {
+    // Re-fetch state for each retry
+    const mainTrade = state.getMainTrade();
+    const boundaries = loadBoundary().boundaries; // Or however you re-fetch
+    const price = await getCurrentPrice();
+    if (retryCount > 5) {
+      sendMessage("❌ Max hedge open retries reached.");
+      return;
+    }
+
+    if (mainTrade?.side === 'Buy' && boundaries.bottom) {
+      const effectiveBoundary = boundaries.bottom + config.boundaryTolerance;
+      if (price <= effectiveBoundary) {
+        hedgeOpeningInProgress = true;
+        try {
+          await openHedgeTrade('Sell', price);
+        } catch (e) {
+          sendMessage(`❌ FAILED to open Sell hedge: ${e.message}`);
+          const retryDelay = config.hedgeOpenRetryDelay || 5000;
+          sendMessage(`⏳ Retrying hedge in ${retryDelay / 1000} sec...`);
+          await delay(retryDelay);
+          await tryOpenHedge(retryCount + 1);
+        } finally {
+          hedgeOpeningInProgress = false;
+        }
+      }
+    }
+
+    if (mainTrade?.side === 'Sell' && boundaries.top) {
+      const effectiveBoundary = boundaries.top - config.boundaryTolerance;
+      if (price >= effectiveBoundary) {
+        hedgeOpeningInProgress = true;
+        try {
+          await openHedgeTrade('Buy', price);
+        } catch (e) {
+          sendMessage(`❌ FAILED to open Buy hedge: ${e.message}`);
+          const retryDelay = config.hedgeOpenRetryDelay || 5000;
+          sendMessage(`⏳ Retrying hedge in ${retryDelay / 1000} sec...`);
+          await delay(retryDelay);
+          await tryOpenHedge(retryCount + 1);
+        } finally {
+          hedgeOpeningInProgress = false;
+        }
+      }
+    }
+  };
+
+  await tryOpenHedge();
+}
+/*
 async function openNewHedgeTrade() {
   const price = await getCurrentPrice(); // ✅ await here!
   if (!price || isNaN(price)) {
@@ -1324,7 +1398,7 @@ async function openNewHedgeTrade() {
     sendMessage("⚠️ Hedge not opened: Already active, opening in progress, or in cooldown.");
   }
 }
-
+*/
 
 module.exports = {
   startBot,
