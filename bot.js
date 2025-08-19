@@ -279,11 +279,16 @@ async function monitorPrice() {
     
     if (hedgeTrade && mainTrade.side === 'Buy'){
  await manualCloseHedgeTrade();
+      sendMessage('Abdicating hedge trade due to price movement.');
+
 } 
     }
-  else if (signal === 'SELL') {    if (hedgeTrade && mainTrade.side === 'Sell'){
+  else if (signal === 'SELL') {    
+    if (hedgeTrade && mainTrade.side === 'Sell'){
  await manualCloseHedgeTrade();
-    }
+      sendMessage('Abdicating hedge trade due to price movement.');
+} 
+    
     } else{}
 
       
