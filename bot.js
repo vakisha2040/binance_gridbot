@@ -73,8 +73,8 @@ await checkForNewTradeOpportunity(price); // Immediate check
 
 async function checkForNewTradeOpportunity(price) {
  
-  //if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) 
-   // return;
+  if (state.getMainTrade() || state.getHedgeTrade() || Date.now() < hedgeCooldownUntil) 
+    return;
 
   const signal =  await analyze();
  
