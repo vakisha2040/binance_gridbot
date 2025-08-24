@@ -18,7 +18,7 @@
   "boundaryStickyness": 300,
   "maxHedgeTrailDistance": 300, 
   "gridSpacing": 7000,
-  "zeroLevelSpacing":300,
+  "zeroLevelSpacing":7000,
   "newBoundarySpacing": 300,
   "gridLevels": 120,
   "gridStopLossPercent": 0.8,
