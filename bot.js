@@ -91,7 +91,7 @@ const mainTrade = state.getMainTrade();
   sendMessage(
     `🎯 New Trade Zones Ready\n` +
     `┌───────────────┬───────────────┐\n` +
-    `│    BUY ZONE   │   SELL ZONE   │\n` +
+    `│    SELL ZONE   │   BUY ZONE   │\n` +
     `│  ≤ ${boundaries.bottom} │  ≥ ${boundaries.top} │\n` +
     `└───────────────┴───────────────┘\n` +
     `Current Price: ${price}`
@@ -113,7 +113,7 @@ const mainTrade = state.getMainTrade();
     sendMessage(
     `🎯 New Trade Zones Ready\n` +
     `┌───────────────┬───────────────┐\n` +
-    `│    BUY ZONE   │   SELL ZONE   │\n` +
+    `│    SELL ZONE   │   BUY ZONE   │\n` +
     `│  ≤ ${boundaries.bottom} │  ≥ ${boundaries.top} │\n` +
     `└───────────────┴───────────────┘\n` +
     `Current Price: ${price}`
@@ -165,7 +165,7 @@ const signal =  await analyze(); // 'BUY', 'SELL', or 'WAIT'
   //  openMainTrade("Buy", price);
     sendMessage(` 🕐 Signal is BUY, Placing Buy order...`);
   } 
-  else if (signal === 'SEOLL') {
+  else if (signal === 'SELL') {
   //  openMainTrade("Sell", price);
     sendMessage(` 🕐 Signal is SELL, Placing sell order...`);
   }  
@@ -185,11 +185,11 @@ async function resetBot() {
   clearBoundary();
   sendMessage('♻️ Persistent state cleared.');
   await initializeBoundaries();
-  try {
-    await bybit.cancelAllOrders();
-  } catch (e) {
-    console.error('❌ Error canceling orders during reset:', e.message);
-  }
+ // try {
+   // await bybit.cancelAllOrders();
+ // } catch (e) {
+ //   console.error('❌ Error canceling orders during reset:', e.message);
+//  }
 }
 
 function stopBot() {
