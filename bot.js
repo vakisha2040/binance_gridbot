@@ -516,8 +516,7 @@ async function openMainTrade(side, entryPrice) {
     boundaryLocked = true;
   
       sendMessage(`📈 Main trade opened: ${side} at ${entryPrice}`);
-   sendMessage(`Main trade data: ${mainTrade}`);
-    
+   sendMessage(`Main trade data: ${JSON.stringify(state.getMainTrade(), null, 2)}`);
     await initializeBoundaries();
   } catch (e) {
     sendMessage(`❌ Failed to open main trade: ${e.message}`);
