@@ -5,6 +5,7 @@ const {
   toPrecision,
 } = require('./helper');
 
+
 //require('./telegram'); // ✅ This will start the Telegram bot
 const {
   getCurrentPrice,
@@ -276,20 +277,25 @@ async function monitorPrice() {
    const signal =  await analyze();
  
   if (signal === 'BUY') {
-    
-    if (hedgeTrade && mainTrade.side === 'Buy'){
-// await manualCloseHedgeTrade();
-    //  sendMessage('Abdicating hedge trade due to price movement.');
-
+     if (hedgeTrade && mainTrade.side === 'Buy'){
+        if ( price < hedgeTrade.breakthroughPrice){
+       await manualCloseHedgeTrade();
+     sendMessage('Abdicating hedge trade due to price movement and signal is BUY.');
+        }
 } 
     }
   else if (signal === 'SELL') {    
     if (hedgeTrade && mainTrade.side === 'Sell'){
-// await manualCloseHedgeTrade();
-    //  sendMessage('Abdicating hedge trade due to price movement.');
-} 
+    if ( price > hedgeTrade.breakthroughPrice){
+       await manualCloseHedgeTrade();
+     sendMessage('Abdicating hedge trade due to price movement and signal is SELL.');
+    }
+    } 
     
-    } else{}
+    } 
+    else{
+    return;
+    }
 
       
       // 1. HEDGE TRADE OPENING LOGIC ===========================================
@@ -299,6 +305,10 @@ async function monitorPrice() {
           const effectiveBoundary = boundaries.bottom + (config.boundaryTolerance);
           
           if (price <= effectiveBoundary) {
+          if (price > mainTrade.breakthroughPrice){
+           await manualCloseMainTrade();
+          }
+          else {
             hedgeOpeningInProgress = true;
          /*
             sendMessage(
@@ -326,12 +336,17 @@ async function monitorPrice() {
               hedgeOpeningInProgress = false;
             }
           }
+          }
         }
         // For Sell main trades (need Buy hedge)
         else if (mainTrade?.side === 'Sell' && boundaries.top) {
           const effectiveBoundary = boundaries.top - (config.boundaryTolerance);
           
           if (price >= effectiveBoundary) {
+           if (price < mainTrade.breakthroughPrice){
+           await manualCloseMainTrade();
+           }
+          else {
             hedgeOpeningInProgress = true;
           /*
             sendMessage(
@@ -357,6 +372,7 @@ async function monitorPrice() {
             } finally {
               hedgeOpeningInProgress = false;
             }
+          }
           }
         }
       }
@@ -475,6 +491,12 @@ if (!mainTrade && !hedgeTrade) {
 
 async function openMainTrade(side, entryPrice) {
   try {
+    let breakthroughPrice = null;
+    if (side === 'Buy') {
+      breakthroughPrice = toPrecision(entryPrice + config.tradeEntrySpacing);
+    } else {
+      breakthroughPrice = toPrecision(entryPrice - config.tradeEntrySpacing);
+    }
     await bybit.openMainTrade(side, config.orderSize);
     state.setMainTrade({
       side,
@@ -486,16 +508,15 @@ async function openMainTrade(side, entryPrice) {
       timestamp: Date.now(),
       killTriggered: false,
       armedNotificationSent: false,
-      breakthroughPrice: null,
+      breakthroughPrice,
     });
     hedgeToMain = false;
     lastBoundaryUpdateTime = 0;
     let extremeBoundary = null; // Tracks the most aggressive boundary level
     boundaryLocked = true;
-    //const mainTrade = state.getMainTrade();
-      
-    sendMessage(`📈 Main trade opened: ${side} at ${entryPrice}`);
-  // sendMessage(`Main trade data: ${mainTrade}`);
+  
+      sendMessage(`📈 Main trade opened: ${side} at ${entryPrice}`);
+   sendMessage(`Main trade data: ${mainTrade}`);
     
     await initializeBoundaries();
   } catch (e) {
@@ -747,9 +768,9 @@ async function openHedgeTrade(side, entryPrice) {
   try {
     let breakthroughPrice = null;
     if (side === 'Buy') {
-      breakthroughPrice = toPrecision(entryPrice + 0.5 * config.zeroLevelSpacing);
+      breakthroughPrice = toPrecision(entryPrice + config.tradeEntrySpacing);
     } else {
-      breakthroughPrice = toPrecision(entryPrice - 0.5 * config.zeroLevelSpacing);
+      breakthroughPrice = toPrecision(entryPrice - config.tradeEntrySpacing);
     }
     
     await bybit.openHedgeTrade(side, config.orderSize);
